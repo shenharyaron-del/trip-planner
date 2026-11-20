@@ -1,5 +1,5 @@
 // Bump VERSION whenever the list of shell files changes.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `shell-${VERSION}`;
 const DATA = 'data';
 const TILES = 'tiles';

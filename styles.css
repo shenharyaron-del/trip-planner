@@ -175,3 +175,7 @@ main { max-width: 680px; margin: 0 auto; padding: 16px; }
   :root:not([data-theme="light"]) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
 }
 :root[data-theme="dark"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); }
+.gap { height: 10px; }
+.notes summary { font-weight: 700; cursor: pointer; }
+.notes ul { margin: 8px 0 0; padding-inline-start: 20px; }
+.notes { margin-bottom: 16px; }

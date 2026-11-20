@@ -80,13 +80,23 @@ const store = {
 
 const KIND = {
   sight: ['📍', 'אטרקציה'], activity: ['🎟️', 'פעילות'], food: ['🍽️', 'אוכל'],
-  fuel: ['⛽', 'תחנת דלק'], hike: ['🥾', 'מסלול הליכה'], other: ['•', 'אחר'],
+  fuel: ['⛽', 'תחנת דלק'], hike: ['🥾', 'מסלול הליכה'], town: ['🏘️', 'עיירה'],
+  ferry: ['⛴️', 'מעבורת'], airport: ['✈️', 'שדה תעופה'], other: ['•', 'אחר'],
 };
 const kind = k => KIND[k] || KIND.other;
-const SLOT = { morning: '☀️ בוקר', noon: '🌤️ צהריים', evening: '🌙 ערב' };
+const SLOT = { morning: '☀️ בוקר', noon: '🌤️ צהריים', evening: '🌙 ערב', day: '🗺️ כל היום' };
+// where we sleep: booked hotel, else the planned stay area
+const lodging = (t, day) => {
+  if (!day) return null;
+  const h = t.hotelById[day.hotelId];
+  if (hasLL(h)) return h;
+  return hasLL(day.stayArea) ? day.stayArea : null;
+};
+// "drive" key absent = no driving leg (walk, ferry, start point); null = unknown
+const hasLeg = it => 'drive' in it;
 
 function tripStatus(t) {
-  if (!t.startDate || !t.endDate) return { text: 'התאריכים עוד לא נקבעו' };
+  if (!t.startDate || !t.endDate) return { text: t.datesNote ? `${t.datesNote} · תאריכים עוד לא נקבעו` : 'התאריכים עוד לא נקבעו' };
   const today = todayIn(t.timezone);
   const total = dayDiff(t.startDate, t.endDate) + 1;
   const until = dayDiff(today, t.startDate);
@@ -144,7 +154,7 @@ function drawMap(el, points, hotel, tripId) {
   const line = [];
   if (hasLL(hotel)) {
     L.marker([hotel.lat, hotel.lng], { icon: pin('🛏', 'hotel') }).addTo(map)
-      .bindPopup(`<a href="#/t/${tripId}/h/${esc(hotel.id)}">${esc(hotel.name)}</a>`);
+      .bindPopup(hotel.id ? `<a href="#/t/${tripId}/h/${esc(hotel.id)}">${esc(hotel.name)}</a>` : esc(hotel.name));
     line.push([hotel.lat, hotel.lng]);
   }
   points.forEach(p => {
@@ -182,7 +192,7 @@ async function viewTrips() {
         <div class="trip-name">${esc(t.name)}</div>
         <div class="muted">${t.startDate && t.endDate
           ? `${fmtDate(t.startDate, { day: 'numeric', month: 'short' })} – ${fmtDate(t.endDate, { day: 'numeric', month: 'short', year: 'numeric' })}`
-          : 'תאריכים: לא ידוע'}</div>
+          : esc(t.datesNote || 'תאריכים: לא ידוע')}</div>
         <div class="muted">${esc(tripStatus(t).text)}</div>
       </div>
     </a>`).join('')}</div>`;
@@ -199,6 +209,7 @@ async function viewDays(id) {
   app.innerHTML = `
     <div class="banner ${st.live ? 'live' : ''}">${esc(st.text)}</div>
     <div class="stamp">עודכן לאחרונה: ${esc(updated)}</div>
+    ${(t.notes || []).length ? `<details class="card notes"><summary>💡 טיפים לטיול</summary><ul>${t.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` : ''}
     <div class="stack">${t.days.map(d => {
       const isToday = d.date === today;
       const hotel = t.hotelById[d.hotelId];
@@ -208,7 +219,7 @@ async function viewDays(id) {
         <div class="day-main">
           <div class="day-date">${d.date ? esc(fmtDate(d.date, { weekday: 'long', day: 'numeric', month: 'long' })) : 'תאריך: לא ידוע'}</div>
           <div class="day-title">${val(d.title)}</div>
-          <div class="muted">📍 ${val(d.region)}${hotel ? ` · 🛏 ${esc(hotel.name)}` : ''}</div>
+          <div class="muted">📍 ${val(d.region)}${hotel ? ` · 🛏 ${esc(hotel.name)}` : d.stayArea ? ` · 🛏 ${esc(d.stayArea.name)}` : ''}</div>
         </div>
         ${isToday ? '<span class="badge">היום</span>' : ''}
       </a>`;
@@ -221,7 +232,7 @@ function itemCard(t, it, numById) {
   const n = numById[it.id];
   const meta = [it.time ? `🕒 ${esc(it.time)}` : null, it.durationMinutes ? `⏱ ${fmtMin(it.durationMinutes)}` : null].filter(Boolean).join(' · ');
   return `
-    <div class="drive">🚗 ${esc(fmtDrive(it.drive))}</div>
+    ${hasLeg(it) ? `<div class="drive">🚗 ${esc(fmtDrive(it.drive))}</div>` : '<div class="gap"></div>'}
     <a class="card item ${it.kind === 'fuel' ? 'fuel' : ''}" href="#/t/${esc(t.id)}/i/${esc(it.id)}">
       <span class="num ${n ? '' : 'plain'}">${it.kind === 'fuel' ? '⛽' : (n || icon)}</span>
       <div class="grow">
@@ -241,7 +252,8 @@ async function viewDay(id, dayIdx) {
   setHeader(title, `#/t/${t.id}`);
 
   const hotel = t.hotelById[day.hotelId];
-  const prevHotel = day.index > 0 ? t.hotelById[t.days[day.index - 1].hotelId] : hotel;
+  const tonight = lodging(t, day);
+  const lastNight = day.index > 0 ? lodging(t, t.days[day.index - 1]) : null;
   const items = effectiveItems(t, day);
   const numById = {};
   const points = [];
@@ -249,10 +261,10 @@ async function viewDay(id, dayIdx) {
     if (it.kind !== 'fuel') numById[it.id] = points.filter(p => p.kind !== 'fuel').length + 1;
     points.push({ ...it, num: numById[it.id] });
   });
-  const route = dayRouteUrl(points, prevHotel || hotel, hotel);
+  const route = dayRouteUrl(points, lastNight, tonight);
 
   const last = items[items.length - 1];
-  const legs = items.filter(it => it.kind !== 'fuel' || it.drive).map(it => it.drive);
+  const legs = items.filter(it => hasLeg(it) && (it.kind !== 'fuel' || it.drive)).map(it => it.drive);
   if (last && 'driveToHotel' in last) legs.push(last.driveToHotel);
   const km = legs.reduce((s, d) => s + (d?.km || 0), 0);
   const min = legs.reduce((s, d) => s + (d?.minutes || 0), 0);
@@ -280,14 +292,16 @@ async function viewDay(id, dayIdx) {
   app.innerHTML = `
     ${hotel
       ? `<a class="hotel-bar" href="#/t/${esc(t.id)}/h/${esc(hotel.id)}"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה</small><b>${esc(hotel.name)}</b></div><span class="chev">‹</span></a>`
-      : `<div class="hotel-bar"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה</small>${UNKNOWN}</div></div>`}
+      : day.stayArea
+        ? `<div class="hotel-bar"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה · טרם הוזמן</small><b>אזור ${esc(day.stayArea.name)}</b></div></div>`
+        : `<div class="hotel-bar"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה</small>${day.index === t.days.length - 1 ? 'יום אחרון, אין לינה' : UNKNOWN}</div></div>`}
     <div id="map" class="map" dir="ltr"></div>
     ${route ? `<a class="btn primary" href="${esc(route)}" target="_blank" rel="noopener">🗺️ מסלול היום בגוגל מפות</a>` : ''}
     ${legs.length ? `<div class="drive-total">🚗 סה״כ נהיגה: ~${km} ק״מ · ${fmtMin(min) || '0 דק׳'}${partial ? ' (חלק מהמקטעים לא ידועים)' : ''}</div>` : ''}
     ${blocks}
     ${last && 'driveToHotel' in last ? `<div class="drive" style="margin-top:6px">🚗 חזרה ללינה: ${esc(fmtDrive(last.driveToHotel))}</div>` : ''}`;
 
-  drawMap($('map'), points, hotel, t.id);
+  drawMap($('map'), points, tonight, t.id);
 }
 
 async function viewItem(id, itemId) {
@@ -312,7 +326,7 @@ async function viewItem(id, itemId) {
           <dt>מחיר</dt><dd>${val(it.price)}</dd>
           <dt>משך מומלץ</dt><dd>${it.durationMinutes ? esc(fmtMin(it.durationMinutes)) : UNKNOWN}</dd>
           <dt>איך מגיעים</dt><dd>${val(it.howToGet)}</dd>
-          <dt>נהיגה מהנקודה הקודמת</dt><dd>${it.drive ? esc(fmtDrive(it.drive)) : UNKNOWN}</dd>
+          ${hasLeg(it) ? `<dt>נהיגה מהנקודה הקודמת</dt><dd>${it.drive ? esc(fmtDrive(it.drive)) : UNKNOWN}</dd>` : ''}
         </dl>
       </section>
       ${tips.length ? `<section class="section tips"><h3>💡 טיפים</h3><ul>${tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul></section>` : ''}

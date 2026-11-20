@@ -1,12 +1,13 @@
 {
   "trips": [
     {
-      "id": "iceland",
-      "name": "איסלנד",
-      "emoji": "🇮🇸",
+      "id": "ireland",
+      "name": "אירלנד",
+      "emoji": "🇮🇪",
       "startDate": null,
       "endDate": null,
-      "file": "data/iceland.json"
+      "datesNote": "יוני · 10 ימים",
+      "file": "data/ireland.json"
     }
   ]
 }

@@ -4,6 +4,7 @@
 
 ## מבנה
 - `data/trips.json`: רשימת היעדים (id, name, emoji, startDate, endDate, file).
+- `data/<trip>-links.json`: "קישורים שימושיים" של הטיול: `{updatedAt, links: [{id, title, url, addedAt}]}`. נערך גם מתוך האפליקציה (מצב עריכה), שכותבת ישר ל-`main` דרך GitHub API עם token ששמור במכשיר של העורך. מוגדר ב-trips.json בשדה `linksFile`.
 - `data/<trip>.json`: טיול אחד: `hotels[]` + `days[]`, כל יום עם `blocks[]` (slot: morning/noon/evening) ובהם `items[]`.
 - פריט עם `kind: "choice"` מכיל `options[]` (label + items), לחלופות "או זה או זה".
 - `app.js`: כל המסכים (ניתוב hash). מקור הנתונים מבודד באובייקט `DataSource`.
@@ -24,5 +25,6 @@
 - מזהי פריטים (`id`) ייחודיים בכל הטיול, באותיות לטיניות ומקפים.
 
 ## קוד
+- האפליקציה עושה commits ל-`main` (קישורים). לפני כל שינוי: `git pull` (או fetch + rebase), כדי לא לדרוס אותם.
 - אם משנים את רשימת קבצי האפליקציה ב-`sw.js`, צריך להעלות את `VERSION`.
 - בדיקה מקומית: `python3 -m http.server` ואז לפתוח http://localhost:8000.

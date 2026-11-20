@@ -7,7 +7,8 @@
       "startDate": null,
       "endDate": null,
       "datesNote": "יוני · 10 ימים",
-      "file": "data/iceland.json"
+      "file": "data/iceland.json",
+      "linksFile": "data/iceland-links.json"
     }
   ]
 }

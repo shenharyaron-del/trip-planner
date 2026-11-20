@@ -21,7 +21,7 @@ self.addEventListener('install', event => {
       const res = await fetch('data/trips.json', { cache: 'no-cache' });
       const { trips = [] } = await res.clone().json();
       await data.put('data/trips.json', res);
-      await Promise.all(trips.map(t => data.add(t.file).catch(() => {})));
+      await Promise.all(trips.flatMap(t => [t.file, t.linksFile].filter(Boolean)).map(f => data.add(f).catch(() => {})));
     } catch (e) { /* offline during install: data cached on first use */ }
     self.skipWaiting();
   })());

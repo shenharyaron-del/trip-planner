@@ -209,6 +209,7 @@ async function viewDays(id) {
   app.innerHTML = `
     <div class="banner ${st.live ? 'live' : ''}">${esc(st.text)}</div>
     <div class="stamp">עודכן לאחרונה: ${esc(updated)}</div>
+    <a class="card links-card" href="#/t/${esc(t.id)}/links"><span>🔗 קישורים שימושיים</span><span class="muted">${(await loadLinks(t)).length || ''} ‹</span></a>
     ${(t.notes || []).length ? `<details class="card notes"><summary>💡 טיפים לטיול</summary><ul>${t.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` : ''}
     <div class="stack">${t.days.map(d => {
       const isToday = d.date === today;
@@ -384,12 +385,182 @@ async function viewHotel(id, hotelId) {
   if (hasLL(h)) drawMap($('map'), [], h, t.id);
 }
 
+/* ---------- editor: writes to the repo through the GitHub API ---------- */
+// Only someone holding a GitHub token (stored on their own device) can edit.
+const REPO = { owner: 'shenharyaron-del', repo: 'trip-planner', branch: 'main' };
+const b64encode = s => { const b = new TextEncoder().encode(s); let x = ''; b.forEach(c => { x += String.fromCharCode(c); }); return btoa(x); };
+const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+const Editor = {
+  token: () => store.get('gh-token') || '',
+  isOn() { return !!this.token(); },
+  async api(path, opts = {}, token = this.token()) {
+    const r = await fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.repo}${path}`, {
+      ...opts, cache: 'no-store',
+      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, ...(opts.headers || {}) },
+    });
+    if (!r.ok) { const e = new Error(`GitHub ${r.status}`); e.status = r.status; throw e; }
+    return r.json();
+  },
+  async verify(token) { await this.api('', {}, token); },
+  async read(path) {
+    try {
+      const d = await this.api(`/contents/${path}?ref=${REPO.branch}`);
+      return { sha: d.sha, json: JSON.parse(b64decode(d.content)) };
+    } catch (e) { if (e.status === 404) return { sha: null, json: null }; throw e; }
+  },
+  // read fresh, apply change, write; retry once if someone else wrote in between
+  async update(path, mutate, message) {
+    for (let attempt = 0; ; attempt++) {
+      const { sha, json } = await this.read(path);
+      const next = mutate(json);
+      const body = { message, branch: REPO.branch, content: b64encode(JSON.stringify(next, null, 2) + '\n') };
+      if (sha) body.sha = sha;
+      try { await this.api(`/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) }); return next; }
+      catch (e) { if (attempt === 0 && (e.status === 409 || e.status === 422)) continue; throw e; }
+    }
+  },
+};
+const editorError = e => e.status === 401 ? 'המפתח לא תקין או שפג תוקפו. אפשר להתחבר מחדש במסך "מצב עריכה".'
+  : e.status === 403 || e.status === 404 ? 'למפתח אין הרשאת כתיבה לריפו trip-planner.'
+  : !navigator.onLine ? 'אין חיבור לאינטרנט. אפשר לנסות שוב כשיש קליטה.'
+  : `השמירה נכשלה (${e.message}).`;
+
+/* ---------- useful links per trip ---------- */
+const linksPath = t => t.linksFile || `data/${t.id}-links.json`;
+const localLinksKey = t => `links:${t.id}`;
+// after an edit the site takes ~1 min to update, so keep our newer copy until it catches up
+async function loadLinks(t) {
+  let remote = null;
+  try { remote = await getJSON(linksPath(t)); } catch { /* no file yet, or offline */ }
+  let local = null;
+  try { local = JSON.parse(store.get(localLinksKey(t)) || 'null'); } catch { /* ignore */ }
+  if (local && (!remote || (local.updatedAt || '') > (remote.updatedAt || ''))) return local.links || [];
+  if (local) store.set(localLinksKey(t), '');
+  return (remote && remote.links) || [];
+}
+const TRACKING = /^(utm_\w+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid|igshid|mibextid|sfnsn|ref_src|_ga|_gl|si)$/i;
+function cleanUrl(raw) {
+  let u;
+  const s = raw.trim();
+  try { u = new URL(s); } catch { try { u = new URL('https://' + s); } catch { return null; } }
+  if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.')) return null;
+  [...u.searchParams.keys()].forEach(k => { if (TRACKING.test(k)) u.searchParams.delete(k); });
+  return u.toString();
+}
+const hostOf = url => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+
+async function viewLinks(id) {
+  const t = await loadTrip(id);
+  setHeader(`קישורים · ${t.name}`, `#/t/${t.id}`, 'חזרה לרשימת הימים');
+  const links = await loadLinks(t);
+  const edit = Editor.isOn();
+  app.innerHTML = `
+    <div class="stack">${links.map(l => `
+      <div class="card link-row">
+        <a class="grow" href="${esc(l.url)}" target="_blank" rel="noopener">
+          <b>${esc(l.title || hostOf(l.url))}</b>
+          <span class="muted ltr">${esc(hostOf(l.url))}</span>
+        </a>
+        ${edit ? `<button class="del-btn" type="button" data-del="${esc(l.id)}" aria-label="מחיקת ${esc(l.title)}">🗑️</button>` : '<span class="chev">‹</span>'}
+      </div>`).join('') || '<p class="empty">אין עדיין קישורים</p>'}
+    </div>
+    ${edit ? `
+    <form id="link-form" class="card link-form" data-trip="${esc(t.id)}">
+      <b>הוספת קישור</b>
+      <label>נושא<input name="title" required maxlength="80" placeholder="למשל: השכרת רכב" autocomplete="off"></label>
+      <label>לינק<input name="url" required inputmode="url" dir="ltr" placeholder="https://…" autocomplete="off"></label>
+      <button class="btn primary" type="submit">הוספה</button>
+      <p id="link-status" class="muted" role="status"></p>
+    </form>` : ''}`;
+}
+
+async function saveLinks(t, mutate, message) {
+  const next = await Editor.update(linksPath(t), json => {
+    const links = mutate((json && json.links) || []);
+    return { updatedAt: new Date().toISOString(), links };
+  }, message);
+  store.set(localLinksKey(t), JSON.stringify(next));
+}
+
+app.addEventListener('submit', async e => {
+  if (e.target.id !== 'link-form') return;
+  e.preventDefault();
+  const f = e.target, status = $('link-status');
+  const title = f.title.value.trim(), url = cleanUrl(f.url.value);
+  if (!url) { status.textContent = 'הלינק לא נראה תקין.'; return; }
+  const t = await loadTrip(f.dataset.trip);
+  f.querySelector('button').disabled = true;
+  status.textContent = 'שומר…';
+  try {
+    await saveLinks(t, links => [...links, { id: 'l-' + Date.now().toString(36), title, url, addedAt: new Date().toISOString() }], `Add link: ${title}`);
+    render(true);
+  } catch (err) {
+    status.textContent = editorError(err);
+    f.querySelector('button').disabled = false;
+  }
+});
+app.addEventListener('click', async e => {
+  const btn = e.target.closest('[data-del]');
+  if (!btn) return;
+  const id = location.hash.match(/^#\/t\/([\w-]+)\/links$/)?.[1];
+  if (!id) return;
+  const t = await loadTrip(id);
+  const row = btn.closest('.link-row');
+  const title = row.querySelector('b').textContent;
+  if (!confirm(`למחוק את "${title}"?`)) return;
+  btn.disabled = true;
+  try {
+    await saveLinks(t, links => links.filter(l => l.id !== btn.dataset.del), `Remove link: ${title}`);
+    render(true);
+  } catch (err) { btn.disabled = false; alert(editorError(err)); }
+});
+
+/* ---------- editor sign-in ---------- */
+async function viewEditor() {
+  setHeader('מצב עריכה', '#/', 'חזרה לדף הראשי');
+  app.innerHTML = Editor.isOn() ? `
+    <div class="card stack">
+      <b>✅ מצב עריכה פעיל במכשיר הזה</b>
+      <p class="muted">אפשר להוסיף ולמחוק קישורים במסך "קישורים שימושיים" של כל טיול.</p>
+      <button id="editor-off" class="btn" type="button">ניתוק</button>
+    </div>` : `
+    <div class="card stack">
+      <b>כניסת עורך</b>
+      <p class="muted">עריכה מהאפליקציה שומרת את השינויים ישר בריפו ב-GitHub. צריך מפתח גישה (token) פעם אחת. הוא נשמר רק במכשיר הזה. מי שאין לו מפתח רק צופה.</p>
+      <details><summary>איך יוצרים מפתח</summary>
+        <ol class="steps">
+          <li>להיכנס ל-<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">יצירת מפתח ב-GitHub</a>.</li>
+          <li>שם: למשל trip-planner. תוקף: עד סוף הטיול.</li>
+          <li>Repository access: ‏Only select repositories ← ‏trip-planner.</li>
+          <li>Permissions ← Repository permissions ← ‏Contents: ‏Read and write.</li>
+          <li>Generate token, להעתיק ולהדביק כאן.</li>
+        </ol>
+      </details>
+      <form id="editor-form" class="stack">
+        <input name="token" type="password" dir="ltr" required placeholder="github_pat_…" autocomplete="off">
+        <button class="btn primary" type="submit">חיבור</button>
+        <p id="editor-status" class="muted" role="status"></p>
+      </form>
+    </div>`;
+  $('editor-off')?.addEventListener('click', () => { store.set('gh-token', ''); updateEditorMenu(); render(true); });
+  $('editor-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const token = e.target.token.value.trim(), status = $('editor-status');
+    status.textContent = 'בודק…';
+    try { await Editor.verify(token); store.set('gh-token', token); updateEditorMenu(); render(true); }
+    catch (err) { status.textContent = err.status === 401 || err.status === 404 ? 'המפתח לא תקין, או שאין לו גישה לריפו trip-planner.' : 'הבדיקה נכשלה. לבדוק חיבור לאינטרנט ולנסות שוב.'; }
+  });
+}
+function updateEditorMenu() { $('menu-editor-label').textContent = Editor.isOn() ? 'מצב עריכה · פעיל' : 'מצב עריכה'; }
+
 /* ---------- router ---------- */
 const routes = [
   [/^#\/t\/([\w-]+)\/d\/(\d+)$/, viewDay],
   [/^#\/t\/([\w-]+)\/i\/([\w-]+)$/, viewItem],
   [/^#\/t\/([\w-]+)\/h\/([\w-]+)$/, viewHotel],
+  [/^#\/t\/([\w-]+)\/links$/, viewLinks],
   [/^#\/t\/([\w-]+)$/, viewDays],
+  [/^#\/editor$/, viewEditor],
 ];
 async function render(keepScroll) {
   const y = window.scrollY;
@@ -434,6 +605,7 @@ window.addEventListener('hashchange', () => setMenu(false));
 const SHARE_URL = new URL('./', location.href).href;
 $('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`הצטרף לאפליקציית הטיולים 🧳\n${SHARE_URL}`);
 $('share-wa').addEventListener('click', () => setMenu(false));
+updateEditorMenu();
 
 /* ---------- theme + offline ---------- */
 const THEMES = [null, 'dark', 'light'];

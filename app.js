@@ -172,8 +172,11 @@ function drawMap(el, points, hotel, tripId) {
 }
 
 /* ---------- chrome ---------- */
-function setHeader(title, back) {
+function setHeader(title, back, backLabel) {
   $('title').textContent = title;
+  const mb = $('menu-back');
+  mb.hidden = !back;
+  if (back) { mb.href = back; $('menu-back-label').textContent = backLabel || 'חזרה'; }
   document.title = title === 'מתכנן טיולים' ? title : `${title} · מתכנן טיולים`;
 }
 
@@ -197,7 +200,7 @@ async function viewTrips() {
 
 async function viewDays(id) {
   const t = await loadTrip(id);
-  setHeader(t.name, '#/');
+  setHeader(t.name, '#/', 'חזרה לרשימת הטיולים');
   const st = tripStatus(t);
   const today = todayIn(t.timezone);
   const updated = t.updatedAt
@@ -246,7 +249,7 @@ async function viewDay(id, dayIdx) {
   const day = t.days[Number(dayIdx)];
   if (!day) throw new Error('היום לא נמצא');
   const title = `יום ${day.index + 1}${day.region ? ' · ' + day.region : ''}`;
-  setHeader(title, `#/t/${t.id}`);
+  setHeader(title, `#/t/${t.id}`, 'חזרה לרשימת הימים');
 
   const hotel = t.hotelById[day.hotelId];
   const tonight = lodging(t, day);
@@ -307,7 +310,7 @@ async function viewItem(id, itemId) {
   const it = t.itemById[itemId];
   if (!it) throw new Error('הפעילות לא נמצאה');
   const [icon, label] = kind(it.kind);
-  setHeader(it.name, `#/t/${t.id}/d/${it.dayIndex}`);
+  setHeader(it.name, `#/t/${t.id}/d/${it.dayIndex}`, `חזרה ליום ${it.dayIndex + 1}`);
   const tips = (it.tips || []).filter(Boolean);
   const links = (it.links || []).filter(l => l && l.url);
   app.innerHTML = `
@@ -338,7 +341,7 @@ async function viewHotel(id, hotelId) {
   const h = t.hotelById[hotelId];
   if (!h) throw new Error('הלינה לא נמצאה');
   const nights = t.days.filter(d => d.hotelId === h.id);
-  setHeader(h.name, nights.length ? `#/t/${t.id}/d/${nights[0].index}` : `#/t/${t.id}`);
+  setHeader(h.name, nights.length ? `#/t/${t.id}/d/${nights[0].index}` : `#/t/${t.id}`, nights.length ? `חזרה ליום ${nights[0].index + 1}` : 'חזרה לרשימת הימים');
   const p = h.price || {};
   const price = isNil(p.amount) ? UNKNOWN : `${esc(Number(p.amount).toLocaleString('he-IL'))} ${esc(p.currency || '')} ${esc(p.note || '')}`;
   const cancel = h.cancelBy ? esc(/^\d{4}-\d{2}-\d{2}$/.test(h.cancelBy) ? fmtDate(h.cancelBy, { day: 'numeric', month: 'long', year: 'numeric' }) : h.cancelBy) : UNKNOWN;
@@ -385,7 +388,7 @@ async function render(keepScroll) {
     else await viewTrips();
   } catch (e) {
     console.error(e);
-    setHeader('שגיאה', '#/');
+    setHeader('שגיאה', '#/', 'חזרה לדף הראשי');
     app.innerHTML = `<div class="card"><b>לא הצלחנו לטעון את הנתונים.</b><p class="muted">${esc(e.message)}</p><button class="btn" type="button" onclick="location.reload()">לנסות שוב</button></div>`;
   }
   if (keepScroll) window.scrollTo(0, y);
@@ -412,8 +415,9 @@ menuBtn.addEventListener('click', () => setMenu(!drawer.classList.contains('open
 overlay.addEventListener('click', () => setMenu(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
 window.addEventListener('hashchange', () => setMenu(false));
-const appUrl = new URL('./', location.href).href;
-$('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`מתכנן הטיולים שלנו 🧳\n${appUrl}`);
+// public link to share; replace with a short/custom URL when there is one
+const SHARE_URL = new URL('./', location.href).href;
+$('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`הצטרף לאפליקציית הטיולים 🧳\n${SHARE_URL}`);
 $('share-wa').addEventListener('click', () => setMenu(false));
 
 /* ---------- theme + offline ---------- */

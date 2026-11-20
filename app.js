@@ -175,9 +175,6 @@ function drawMap(el, points, hotel, tripId) {
 function setHeader(title, back) {
   $('title').textContent = title;
   document.title = title === 'מתכנן טיולים' ? title : `${title} · מתכנן טיולים`;
-  const b = $('back');
-  b.hidden = !back;
-  if (back) b.href = back;
 }
 
 /* ---------- views ---------- */

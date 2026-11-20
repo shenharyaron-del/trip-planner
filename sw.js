@@ -1,5 +1,5 @@
 // Bump VERSION whenever the list of shell files changes.
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL = `shell-${VERSION}`;
 const DATA = 'data';
 const TILES = 'tiles';
@@ -13,7 +13,8 @@ const SHELL_FILES = [
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    await (await caches.open(SHELL)).addAll(SHELL_FILES);
+    // cache: 'reload' skips the browser HTTP cache (GitHub Pages caches files ~10 min)
+    await (await caches.open(SHELL)).addAll(SHELL_FILES.map(u => new Request(u, { cache: 'reload' })));
     // cache trip index + every trip file so the whole plan works offline
     const data = await caches.open(DATA);
     try {
@@ -44,36 +45,34 @@ self.addEventListener('fetch', event => {
   } else if (url.origin === location.origin && url.pathname.includes('/data/')) {
     event.respondWith(networkFirst(req, DATA));
   } else if (url.origin === location.origin) {
-    event.respondWith(staleWhileRevalidate(req, SHELL));
+    event.respondWith(networkFirst(req, SHELL, 3000));
   }
 });
 
-async function networkFirst(req, cacheName) {
+// fresh copy when online; cached copy when offline or the network is slower than timeoutMs
+async function networkFirst(req, cacheName, timeoutMs) {
   const cache = await caches.open(cacheName);
-  try {
-    const res = await fetch(req);
+  const net = fetch(req, { cache: 'no-cache' }).then(res => {
     if (res.ok) cache.put(req, res.clone());
     return res;
-  } catch (e) {
+  });
+  const fallback = async () => {
+    const hit = await cache.match(req, { ignoreSearch: true })
+      || (req.mode === 'navigate' ? await cache.match('index.html') : null);
+    return hit || net;
+  };
+  if (!timeoutMs) return net.catch(fallback);
+  const timer = new Promise(r => setTimeout(r, timeoutMs, 'timeout'));
+  try {
+    const first = await Promise.race([net, timer]);
+    if (first !== 'timeout') return first;
     const hit = await cache.match(req, { ignoreSearch: true });
-    if (hit) return hit;
-    throw e;
+    return hit || net;
+  } catch (e) {
+    return fallback();
   }
 }
 
-async function staleWhileRevalidate(req, cacheName) {
-  const cache = await caches.open(cacheName);
-  const hit = await cache.match(req, { ignoreSearch: true });
-  const fresh = fetch(req).then(res => {
-    if (res.ok) cache.put(req, res.clone());
-    return res;
-  }).catch(() => null);
-  if (hit) return hit;
-  const res = await fresh;
-  if (res) return res;
-  if (req.mode === 'navigate') return cache.match('index.html');
-  return Response.error();
-}
 
 async function tileCacheFirst(req) {
   const cache = await caches.open(TILES);

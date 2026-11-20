@@ -7,7 +7,7 @@
 - `data/<trip>.json`: טיול אחד: `hotels[]` + `days[]`, כל יום עם `blocks[]` (slot: morning/noon/evening) ובהם `items[]`.
 - פריט עם `kind: "choice"` מכיל `options[]` (label + items), לחלופות "או זה או זה".
 - `app.js`: כל המסכים (ניתוב hash). מקור הנתונים מבודד באובייקט `DataSource`.
-- `sw.js`: service worker. data: network-first. קבצי אפליקציה: stale-while-revalidate. אריחי מפה: cache-first.
+- `sw.js`: service worker. data: network-first. קבצי אפליקציה: network-first (עם נפילה למטמון אחרי 3 שניות). אריחי מפה: cache-first.
 
 ## כללים לעריכת נתונים
 - שדה שאין עליו מידע אמין = `null` (מוצג "לא ידוע"). לא ממציאים שעות, מחירים, טלפונים או כתובות.

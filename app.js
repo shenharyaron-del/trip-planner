@@ -430,8 +430,8 @@ overlay.addEventListener('click', () => setMenu(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
 window.addEventListener('hashchange', () => setMenu(false));
 // public link to share; replace with a short/custom URL when there is one
-// ?v= busts WhatsApp's cached link preview; bump it after changing the preview tags
-const SHARE_URL = new URL('./?v=2', location.href).href;
+// public link to share (add ?v=N temporarily to refresh WhatsApp's cached preview)
+const SHARE_URL = new URL('./', location.href).href;
 $('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`הצטרף לאפליקציית הטיולים 🧳\n${SHARE_URL}`);
 $('share-wa').addEventListener('click', () => setMenu(false));
 

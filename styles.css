@@ -196,3 +196,5 @@ main { max-width: 680px; margin: 0 auto; padding: 16px; }
 .drawer-item:active, .drawer-item:hover { background: var(--surface-2); }
 @media (prefers-reduced-motion: reduce) { .drawer { transition: none; } }
 .drawer-item[hidden] { display: none; }
+.day-card.flash { animation: flash 1.2s ease; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: var(--shadow); } }

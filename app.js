@@ -214,7 +214,7 @@ async function viewDays(id) {
       const isToday = d.date === today;
       const hotel = t.hotelById[d.hotelId];
       return `
-      <a class="card day-card ${isToday ? 'today' : ''}" href="#/t/${esc(t.id)}/d/${d.index}" ${isToday ? 'id="today"' : ''}>
+      <a class="card day-card ${isToday ? 'today' : ''}" href="#/t/${esc(t.id)}/d/${d.index}" data-day="${d.index}" ${isToday ? 'id="today"' : ''}>
         <div class="day-num">יום<b>${d.index + 1}</b></div>
         <div class="day-main">
           <div class="day-date">${d.date ? esc(fmtDate(d.date, { weekday: 'long', day: 'numeric', month: 'long' })) : 'תאריך: לא ידוע'}</div>
@@ -224,7 +224,16 @@ async function viewDays(id) {
         ${isToday ? '<span class="badge">היום</span>' : ''}
       </a>`;
     }).join('') || '<p class="empty">אין עדיין ימים</p>'}</div>`;
-  $('today')?.scrollIntoView({ block: 'center' });
+  // back from a day: scroll to the day we left; otherwise to today
+  const from = lastDay[t.id];
+  const target = (from !== undefined && app.querySelector(`[data-day="${from}"]`)) || $('today');
+  if (!target) return false;
+  target.scrollIntoView({ block: 'center' });
+  if (from !== undefined) {
+    target.classList.add('flash');
+    setTimeout(() => target.classList.remove('flash'), 1200);
+  }
+  return true;
 }
 
 function itemCard(t, it, numById) {
@@ -244,9 +253,13 @@ function itemCard(t, it, numById) {
     </a>`;
 }
 
+// last day opened per trip, to return to it in the day list
+const lastDay = {};
+
 async function viewDay(id, dayIdx) {
   const t = await loadTrip(id);
   const day = t.days[Number(dayIdx)];
+  if (day) lastDay[t.id] = day.index;
   if (!day) throw new Error('היום לא נמצא');
   const title = `יום ${day.index + 1}${day.region ? ' · ' + day.region : ''}`;
   setHeader(title, `#/t/${t.id}`, 'חזרה לרשימת הימים');
@@ -382,9 +395,10 @@ async function render(keepScroll) {
   const y = window.scrollY;
   clearMaps();
   const hash = location.hash;
+  let handledScroll = false;
   const match = routes.map(([re, fn]) => [hash.match(re), fn]).find(([m]) => m);
   try {
-    if (match) await match[1](...match[0].slice(1).map(decodeURIComponent));
+    if (match) handledScroll = await match[1](...match[0].slice(1).map(decodeURIComponent));
     else await viewTrips();
   } catch (e) {
     console.error(e);
@@ -392,7 +406,7 @@ async function render(keepScroll) {
     app.innerHTML = `<div class="card"><b>לא הצלחנו לטעון את הנתונים.</b><p class="muted">${esc(e.message)}</p><button class="btn" type="button" onclick="location.reload()">לנסות שוב</button></div>`;
   }
   if (keepScroll) window.scrollTo(0, y);
-  else if (!$('today')) window.scrollTo(0, 0);
+  else if (handledScroll !== true) window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', () => render(false));
 

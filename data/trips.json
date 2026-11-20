@@ -1,0 +1,12 @@
+{
+  "trips": [
+    {
+      "id": "iceland",
+      "name": "איסלנד",
+      "emoji": "🇮🇸",
+      "startDate": null,
+      "endDate": null,
+      "file": "data/iceland.json"
+    }
+  ]
+}

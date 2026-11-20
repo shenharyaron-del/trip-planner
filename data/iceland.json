@@ -1,0 +1,194 @@
+{
+  "id": "iceland",
+  "name": "איסלנד",
+  "currency": "ISK",
+  "timezone": "Atlantic/Reykjavik",
+  "updatedAt": "2026-11-20T21:00:00Z",
+
+  "hotels": [
+    {
+      "id": "h-reykjavik",
+      "name": "לינה ברייקיאוויק (טרם נקבע)",
+      "address": null,
+      "lat": 64.1466,
+      "lng": -21.9426,
+      "phone": null,
+      "price": { "amount": null, "currency": "ISK", "note": "ללילה" },
+      "checkIn": null,
+      "checkOut": null,
+      "cancelBy": null,
+      "bookingUrl": null,
+      "notes": "מיקום זמני במרכז העיר, עד שייקבע מלון."
+    }
+  ],
+
+  "days": [
+    {
+      "date": null,
+      "region": "חוג הזהב",
+      "title": "מפלים, גייזרים ושבר יבשתי",
+      "hotelId": "h-reykjavik",
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "thingvellir",
+              "kind": "sight",
+              "name": "פארק לאומי תינגווטליר",
+              "lat": 64.2559,
+              "lng": -21.1299,
+              "drive": { "km": 48, "minutes": 45 },
+              "summary": "השבר בין הלוח האמריקאי לאירואסייתי, ומקום מושב הפרלמנט ההיסטורי",
+              "description": "פארק לאומי ואתר מורשת עולמית של אונסק\"ו. כאן נפגש הפרלמנט האיסלנדי (אלתינג) מאז שנת 930 בערך. אפשר ללכת בתוך הבקע אלמנגיאה, בין קירות הסלע של השבר הטקטוני.",
+              "hours": null,
+              "price": null,
+              "howToGet": "נסיעה מרייקיאוויק בכביש 36.",
+              "durationMinutes": 90,
+              "tips": [
+                "החניה בפארק בתשלום.",
+                "תצפית יפה על הבקע ליד מרכז המבקרים (Hakið)."
+              ],
+              "links": [
+                { "label": "אתר הפארק", "url": "https://www.thingvellir.is/en/" }
+              ]
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "fridheimar",
+              "kind": "food",
+              "name": "פרידהיימר: חממת עגבניות",
+              "lat": 64.1756,
+              "lng": -20.4425,
+              "drive": { "km": 55, "minutes": 50 },
+              "summary": "ארוחת צהריים בתוך חממת עגבניות",
+              "description": "חווה עם חממות עגבניות ומסעדה בתוך החממה. הכי מוכרים בזכות מרק העגבניות.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": ["מומלץ להזמין מקום מראש."],
+              "links": [
+                { "label": "אתר המקום", "url": "https://www.fridheimar.is/en" }
+              ]
+            },
+            {
+              "id": "geysir",
+              "kind": "sight",
+              "name": "גייסיר וסטרוקור",
+              "lat": 64.3104,
+              "lng": -20.3024,
+              "drive": { "km": 20, "minutes": 20 },
+              "summary": "שדה גייזרים. סטרוקור מתפרץ כל כמה דקות",
+              "description": "אזור גאותרמי פעיל. הגייזר הגדול, גייסיר, כמעט לא מתפרץ היום, אבל השכן שלו סטרוקור מתפרץ כל כמה דקות לגובה של עשרות מטרים.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 45,
+              "tips": [
+                "לעמוד עם הגב לרוח, אחרת תירטבו.",
+                "המים רותחים. לא לעבור את החבלים."
+              ],
+              "links": []
+            },
+            {
+              "id": "fuel-golden-circle",
+              "kind": "fuel",
+              "name": "תדלוק באזור",
+              "lat": null,
+              "lng": null,
+              "drive": null,
+              "summary": "לוודא תחנה במסלול לפני שממשיכים",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": null,
+              "tips": [],
+              "links": []
+            },
+            {
+              "id": "gullfoss",
+              "kind": "sight",
+              "name": "מפל גולפוס",
+              "lat": 64.3271,
+              "lng": -20.1199,
+              "drive": { "km": 10, "minutes": 10 },
+              "summary": "מפל דו-מדרגתי עצום על נהר הוויטאו",
+              "description": "אחד המפלים המפורסמים באיסלנד. הנהר יורד בשתי מדרגות לתוך קניון צר. יש שבילי תצפית עליונים ותחתונים.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 45,
+              "tips": [
+                "השביל התחתון קרוב למים ורטוב מהרסס. כדאי מעיל גשם.",
+                "בחורף חלק מהשבילים עלולים להיות סגורים בגלל קרח."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "kind": "choice",
+              "options": [
+                {
+                  "label": "♨️ מעיין חם",
+                  "items": [
+                    {
+                      "id": "secret-lagoon",
+                      "kind": "activity",
+                      "name": "Secret Lagoon (Gamla Laugin)",
+                      "lat": 64.1373,
+                      "lng": -20.3093,
+                      "drive": { "km": 30, "minutes": 30 },
+                      "driveToHotel": { "km": 100, "minutes": 80 },
+                      "summary": "בריכת מים חמים טבעית בפלודיר",
+                      "description": "בריכה גאותרמית טבעית, מהוותיקות באיסלנד, מוקפת אדים וגייזר קטן.",
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 90,
+                      "tips": ["להביא בגד ים ומגבת."],
+                      "links": [
+                        { "label": "אתר המקום", "url": "https://secretlagoon.is/" }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "label": "🌋 מכתש",
+                  "items": [
+                    {
+                      "id": "kerid",
+                      "kind": "sight",
+                      "name": "מכתש קריד",
+                      "lat": 64.041,
+                      "lng": -20.8851,
+                      "drive": { "km": 65, "minutes": 50 },
+                      "driveToHotel": { "km": 65, "minutes": 55 },
+                      "summary": "מכתש געשי עם אגם טורקיז, בדרך חזרה",
+                      "description": "מכתש געשי עם קירות סלע אדומים ואגם בתחתיתו. אפשר להקיף אותו מלמעלה ולרדת עד המים.",
+                      "hours": null,
+                      "price": null,
+                      "howToGet": "ליד כביש 35, בדרך חזרה לרייקיאוויק.",
+                      "durationMinutes": 30,
+                      "tips": ["הכניסה בתשלום."],
+                      "links": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

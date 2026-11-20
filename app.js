@@ -21,6 +21,7 @@ async function loadTrip(id) {
   const meta = (await loadTrips()).find(t => t.id === id);
   if (!meta) throw new Error('הטיול לא נמצא');
   const trip = normalize({ ...meta, ...(await DataSource.trip(meta)) });
+  try { await Sheet.load(); applySheetHotels(trip); } catch { /* offline with no saved copy */ }
   cache.trip[id] = trip;
   return trip;
 }
@@ -209,7 +210,10 @@ async function viewDays(id) {
   app.innerHTML = `
     <div class="banner ${st.live ? 'live' : ''}">${esc(st.text)}</div>
     <div class="stamp">עודכן לאחרונה: ${esc(updated)}</div>
-    <a class="card links-card" href="#/t/${esc(t.id)}/links"><span>🔗 קישורים שימושיים</span><span class="muted">${(await loadLinks(t)).length || ''} ‹</span></a>
+    <div class="quick">
+      <a class="card links-card" href="#/t/${esc(t.id)}/links"><span>🔗 קישורים</span><span class="muted">${(await loadLinks(t)).length || ''}</span></a>
+      ${SHEET_URL ? Object.entries(SHEET_VIEWS).map(([k, v]) => `<a class="card links-card" href="#/t/${esc(t.id)}/s/${k}"><span>${v.icon} ${esc(v.title)}</span><span class="muted">${Sheet.rows(k, t).length || ''}</span></a>`).join('') : ''}
+    </div>
     ${(t.notes || []).length ? `<details class="card notes"><summary>💡 טיפים לטיול</summary><ul>${t.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` : ''}
     <div class="stack">${t.days.map(d => {
       const isToday = d.date === today;
@@ -357,7 +361,10 @@ async function viewHotel(id, hotelId) {
   const nights = t.days.filter(d => d.hotelId === h.id);
   setHeader(h.name, nights.length ? `#/t/${t.id}/d/${nights[0].index}` : `#/t/${t.id}`, nights.length ? `חזרה ליום ${nights[0].index + 1}` : 'חזרה לרשימת הימים');
   const p = h.price || {};
-  const price = isNil(p.amount) ? UNKNOWN : `${esc(Number(p.amount).toLocaleString('he-IL'))} ${esc(p.currency || '')} ${esc(p.note || '')}`;
+  const price = typeof h.price === 'string' ? esc(h.price)
+    : isNil(p.amount) ? UNKNOWN : `${esc(Number(p.amount).toLocaleString('he-IL'))} ${esc(p.currency || '')} ${esc(p.note || '')}`;
+  const ref = h.bookingRef ? `<dt>🔒 מספר הזמנה</dt><dd class="ltr">${esc(h.bookingRef)}</dd>`
+    : h.fromSheet && Sheet.locked('hotels') ? '<dt>🔒 מספר הזמנה</dt><dd><a href="#/login">כניסה עם סיסמת הטיול</a></dd>' : '';
   const cancel = h.cancelBy ? esc(/^\d{4}-\d{2}-\d{2}$/.test(h.cancelBy) ? fmtDate(h.cancelBy, { day: 'numeric', month: 'long', year: 'numeric' }) : h.cancelBy) : UNKNOWN;
   app.innerHTML = `
     <article class="detail">
@@ -377,6 +384,7 @@ async function viewHotel(id, hotelId) {
           <dt>צ׳ק-אין</dt><dd>${val(h.checkIn)}</dd>
           <dt>צ׳ק-אאוט</dt><dd>${val(h.checkOut)}</dd>
           <dt>ביטול חינם עד</dt><dd>${cancel}</dd>
+          ${ref}
         </dl>
       </section>
       ${h.notes ? `<section class="section"><h3>הערות</h3><p>${esc(h.notes)}</p></section>` : ''}
@@ -385,58 +393,93 @@ async function viewHotel(id, hotelId) {
   if (hasLL(h)) drawMap($('map'), [], h, t.id);
 }
 
-/* ---------- editor: writes to the repo through the GitHub API ---------- */
-// Only someone holding a GitHub token (stored on their own device) can edit.
-const REPO = { owner: 'shenharyaron-del', repo: 'trip-planner', branch: 'main' };
-const b64encode = s => { const b = new TextEncoder().encode(s); let x = ''; b.forEach(c => { x += String.fromCharCode(c); }); return btoa(x); };
-const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
-const Editor = {
-  token: () => store.get('gh-token') || '',
-  isOn() { return !!this.token(); },
-  async api(path, opts = {}, token = this.token()) {
-    const r = await fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.repo}${path}`, {
-      ...opts, cache: 'no-store',
-      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, ...(opts.headers || {}) },
-    });
-    if (!r.ok) { const e = new Error(`GitHub ${r.status}`); e.status = r.status; throw e; }
-    return r.json();
-  },
-  async verify(token) { await this.api('', {}, token); },
-  async read(path) {
+/* ---------- Google Sheets backend (apps-script/Code.gs) ---------- */
+// Web-app URL of the deployed Apps Script (…/exec). Empty = not connected yet.
+const SHEET_URL = '';
+const Sheet = {
+  key: () => store.get('trip-key') || '',
+  level: () => store.get('trip-level') || 'public',
+  data: null,
+  async call(body, timeoutMs = 10000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
-      const d = await this.api(`/contents/${path}?ref=${REPO.branch}`);
-      return { sha: d.sha, json: JSON.parse(b64decode(d.content)) };
-    } catch (e) { if (e.status === 404) return { sha: null, json: null }; throw e; }
+      // text/plain keeps it a "simple" request (Apps Script does not answer CORS preflight)
+      const r = await fetch(SHEET_URL, {
+        method: 'POST', cache: 'no-store', signal: ctrl.signal,
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ key: this.key(), ...body }),
+      });
+      const j = await r.json();
+      if (!j.ok) { const e = new Error(j.error || 'error'); e.code = j.error; throw e; }
+      return j;
+    } finally { clearTimeout(timer); }
   },
-  // read fresh, apply change, write; retry once if someone else wrote in between
-  async update(path, mutate, message) {
-    for (let attempt = 0; ; attempt++) {
-      const { sha, json } = await this.read(path);
-      const next = mutate(json);
-      const body = { message, branch: REPO.branch, content: b64encode(JSON.stringify(next, null, 2) + '\n') };
-      if (sha) body.sha = sha;
-      try { await this.api(`/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) }); return next; }
-      catch (e) { if (attempt === 0 && (e.status === 409 || e.status === 422)) continue; throw e; }
+  // latest data from the sheet; falls back to the copy saved on this device (offline)
+  async load(force) {
+    if (!SHEET_URL) return null;
+    if (this.data && !force) return this.data;
+    try {
+      const j = await this.call({ action: 'read' });
+      this.data = j;
+      store.set('sheet-cache', JSON.stringify({ key: this.key(), data: j }));
+      if (this.key() && j.level !== this.level()) {   // password was changed in the sheet
+        if (j.level === 'public') store.set('trip-key', '');
+        store.set('trip-level', j.level === 'public' ? '' : j.level);
+        updateLoginMenu();
+      }
+    } catch (e) {
+      let c = null;
+      try { c = JSON.parse(store.get('sheet-cache') || 'null'); } catch { /* ignore */ }
+      if (c && c.key === this.key()) this.data = c.data; else throw e;
     }
+    return this.data;
   },
+  table(name) { return (this.data && this.data.tables && this.data.tables[name]) || { columns: [], rows: [], hasPrivate: false }; },
+  rows(name, t) { return this.table(name).rows.filter(r => !r['טיול'] || r['טיול'] === t.id || r['טיול'] === t.name); },
+  locked(name) { return this.table(name).hasPrivate && this.data && this.data.level === 'public'; },
 };
-const editorError = e => e.status === 401 ? 'המפתח לא תקין או שפג תוקפו. אפשר להתחבר מחדש במסך "מצב עריכה".'
-  : e.status === 403 || e.status === 404 ? 'למפתח אין הרשאת כתיבה לריפו trip-planner.'
-  : !navigator.onLine ? 'אין חיבור לאינטרנט. אפשר לנסות שוב כשיש קליטה.'
+const canEdit = () => !!SHEET_URL && Sheet.level() === 'edit';
+const sheetError = e => e.code === 'forbidden' ? 'אין הרשאת עריכה. צריך להיכנס עם סיסמת העריכה.'
+  : e.name === 'AbortError' || !navigator.onLine ? 'אין חיבור לאינטרנט (או שהוא איטי מדי). אפשר לנסות שוב כשיש קליטה.'
   : `השמירה נכשלה (${e.message}).`;
+function resetData() { Sheet.data = null; cache.trip = {}; }
+
+// "לילות" like "1,2" or "3-5" → [1,2] / [3,4,5]
+function parseNights(s) {
+  const out = [];
+  String(s || '').split(/[,،;\s]+/).forEach(p => {
+    const m = p.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+    if (m) for (let i = +m[1]; i <= +m[2]; i++) out.push(i);
+    else if (/^\d+$/.test(p)) out.push(+p);
+  });
+  return out;
+}
+function applySheetHotels(t) {
+  Sheet.rows('hotels', t).forEach(r => {
+    const id = 'sh-' + (r['מזהה'] || r['שם']);
+    const ll = String(r['קואורדינטות'] || '').split(',').map(x => parseFloat(x));
+    const h = {
+      id, name: r['שם'] || 'מלון', address: r['כתובת'] || null, phone: r['טלפון'] || null,
+      checkIn: r["צ'ק-אין"] || null, checkOut: r["צ'ק-אאוט"] || null, price: r['מחיר'] || null,
+      cancelBy: r['ביטול עד'] || null, bookingUrl: r['לינק להזמנה'] || null, notes: r['הערות'] || null,
+      bookingRef: r['🔒 מספר הזמנה'], fromSheet: true,
+    };
+    if (ll.length === 2 && ll.every(Number.isFinite)) { h.lat = ll[0]; h.lng = ll[1]; }
+    t.hotels.push(h);
+    t.hotelById[id] = h;
+    parseNights(r['לילות']).forEach(n => { if (t.days[n - 1]) t.days[n - 1].hotelId = id; });
+  });
+}
 
 /* ---------- useful links per trip ---------- */
 const linksPath = t => t.linksFile || `data/${t.id}-links.json`;
-const localLinksKey = t => `links:${t.id}`;
-// after an edit the site takes ~1 min to update, so keep our newer copy until it catches up
 async function loadLinks(t) {
-  let remote = null;
-  try { remote = await getJSON(linksPath(t)); } catch { /* no file yet, or offline */ }
-  let local = null;
-  try { local = JSON.parse(store.get(localLinksKey(t)) || 'null'); } catch { /* ignore */ }
-  if (local && (!remote || (local.updatedAt || '') > (remote.updatedAt || ''))) return local.links || [];
-  if (local) store.set(localLinksKey(t), '');
-  return (remote && remote.links) || [];
+  if (SHEET_URL) {
+    try { await Sheet.load(); } catch { return []; }
+    return Sheet.rows('links', t).map(r => ({ id: r['מזהה'], title: r['נושא'], url: r['לינק'] })).filter(l => l.url);
+  }
+  try { return (await getJSON(linksPath(t))).links || []; } catch { return []; }
 }
 const TRACKING = /^(utm_\w+|fbclid|gclid|dclid|msclkid|mc_cid|mc_eid|igshid|mibextid|sfnsn|ref_src|_ga|_gl|si)$/i;
 function cleanUrl(raw) {
@@ -453,7 +496,7 @@ async function viewLinks(id) {
   const t = await loadTrip(id);
   setHeader(`קישורים · ${t.name}`, `#/t/${t.id}`, 'חזרה לרשימת הימים');
   const links = await loadLinks(t);
-  const edit = Editor.isOn();
+  const edit = canEdit();
   app.innerHTML = `
     <div class="stack">${links.map(l => `
       <div class="card link-row">
@@ -461,7 +504,7 @@ async function viewLinks(id) {
           <b>${esc(l.title || hostOf(l.url))}</b>
           <span class="muted ltr">${esc(hostOf(l.url))}</span>
         </a>
-        ${edit ? `<button class="del-btn" type="button" data-del="${esc(l.id)}" aria-label="מחיקת ${esc(l.title)}">🗑️</button>` : '<span class="chev">‹</span>'}
+        ${edit ? `<button class="del-btn" type="button" data-del="${esc(l.id)}" aria-label="מחיקת ${esc(l.title || '')}">🗑️</button>` : '<span class="chev">‹</span>'}
       </div>`).join('') || '<p class="empty">אין עדיין קישורים</p>'}
     </div>
     ${edit ? `
@@ -474,14 +517,6 @@ async function viewLinks(id) {
     </form>` : ''}`;
 }
 
-async function saveLinks(t, mutate, message) {
-  const next = await Editor.update(linksPath(t), json => {
-    const links = mutate((json && json.links) || []);
-    return { updatedAt: new Date().toISOString(), links };
-  }, message);
-  store.set(localLinksKey(t), JSON.stringify(next));
-}
-
 app.addEventListener('submit', async e => {
   if (e.target.id !== 'link-form') return;
   e.preventDefault();
@@ -492,66 +527,102 @@ app.addEventListener('submit', async e => {
   f.querySelector('button').disabled = true;
   status.textContent = 'שומר…';
   try {
-    await saveLinks(t, links => [...links, { id: 'l-' + Date.now().toString(36), title, url, addedAt: new Date().toISOString() }], `Add link: ${title}`);
+    await Sheet.call({ action: 'add', table: 'links', row: { 'טיול': t.id, 'נושא': title, 'לינק': url, 'נוסף': new Date().toISOString() } });
+    await Sheet.load(true);
     render(true);
   } catch (err) {
-    status.textContent = editorError(err);
+    status.textContent = sheetError(err);
     f.querySelector('button').disabled = false;
   }
 });
 app.addEventListener('click', async e => {
   const btn = e.target.closest('[data-del]');
-  if (!btn) return;
-  const id = location.hash.match(/^#\/t\/([\w-]+)\/links$/)?.[1];
-  if (!id) return;
-  const t = await loadTrip(id);
-  const row = btn.closest('.link-row');
-  const title = row.querySelector('b').textContent;
+  if (!btn || !/^#\/t\/[\w-]+\/links$/.test(location.hash)) return;
+  const title = btn.closest('.link-row').querySelector('b').textContent;
   if (!confirm(`למחוק את "${title}"?`)) return;
   btn.disabled = true;
   try {
-    await saveLinks(t, links => links.filter(l => l.id !== btn.dataset.del), `Remove link: ${title}`);
+    await Sheet.call({ action: 'delete', table: 'links', id: btn.dataset.del });
+    await Sheet.load(true);
     render(true);
-  } catch (err) { btn.disabled = false; alert(editorError(err)); }
+  } catch (err) { btn.disabled = false; alert(sheetError(err)); }
 });
 
-/* ---------- editor sign-in ---------- */
-async function viewEditor() {
-  setHeader('מצב עריכה', '#/', 'חזרה לדף הראשי');
-  app.innerHTML = Editor.isOn() ? `
+/* ---------- flights / car rental (generic rows from the sheet) ---------- */
+const SHEET_VIEWS = {
+  flights: { title: 'טיסות', icon: '✈️', empty: 'אין עדיין טיסות',
+    head: r => [`✈️ ${r['מספר טיסה'] || 'טיסה'}`, [r['מ-'], r['ל-']].filter(Boolean).join(' ← ')],
+    skip: ['מספר טיסה', 'מ-', 'ל-'] },
+  cars: { title: 'רכב', icon: '🚗', empty: 'אין עדיין פרטי השכרה',
+    head: r => [`🚗 ${r['חברה'] || 'השכרת רכב'}`, ''], skip: ['חברה'] },
+};
+const factValue = (k, v) => /טלפון/.test(k) ? `<a class="ltr" href="tel:${esc(v.replace(/[^\d+]/g, ''))}">${esc(v)}</a>`
+  : /^https?:\/\//.test(v) ? `<a href="${esc(v)}" target="_blank" rel="noopener">פתיחה ↗</a>`
+  : esc(v);
+const lockedNote = () => `<p class="muted lock-note">🔒 פרטי הזמנה מוסתרים. <a href="#/login">כניסה עם סיסמת הטיול</a></p>`;
+
+async function viewSheetTable(id, name) {
+  const t = await loadTrip(id);
+  const cfg = SHEET_VIEWS[name];
+  setHeader(`${cfg.title} · ${t.name}`, `#/t/${t.id}`, 'חזרה לרשימת הימים');
+  if (!SHEET_URL) { app.innerHTML = '<p class="empty">עוד לא מחובר לגיליון</p>'; return; }
+  try { await Sheet.load(); } catch { app.innerHTML = '<p class="empty">לא הצלחנו לטעון. צריך חיבור לאינטרנט בפעם הראשונה.</p>'; return; }
+  const tb = Sheet.table(name);
+  const rows = Sheet.rows(name, t);
+  app.innerHTML = `
+    ${Sheet.locked(name) && rows.length ? lockedNote() : ''}
+    <div class="stack">${rows.map(r => {
+      const [title, sub] = cfg.head(r);
+      const facts = tb.columns.filter(c => !['מזהה', 'טיול', ...cfg.skip].includes(c) && r[c]);
+      return `
+      <article class="card">
+        <b class="row-title">${esc(title)}</b>
+        ${sub ? `<div class="muted">${esc(sub)}</div>` : ''}
+        ${facts.length ? `<dl class="facts" style="margin-top:10px">${facts.map(c => `<dt>${esc(c)}</dt><dd>${factValue(c, r[c])}</dd>`).join('')}</dl>` : ''}
+      </article>`;
+    }).join('') || `<p class="empty">${cfg.empty}</p>`}</div>
+    <p class="muted" style="margin-top:14px">העריכה נעשית בגיליון Google Sheets.</p>`;
+}
+
+/* ---------- sign-in with the trip / edit password ---------- */
+async function viewLogin() {
+  setHeader('כניסה עם סיסמה', '#/', 'חזרה לדף הראשי');
+  if (!SHEET_URL) { app.innerHTML = '<p class="empty">עוד לא מחובר לגיליון</p>'; return; }
+  const lvl = Sheet.level();
+  app.innerHTML = Sheet.key() ? `
     <div class="card stack">
-      <b>✅ מצב עריכה פעיל במכשיר הזה</b>
-      <p class="muted">אפשר להוסיף ולמחוק קישורים במסך "קישורים שימושיים" של כל טיול.</p>
-      <button id="editor-off" class="btn" type="button">ניתוק</button>
+      <b>✅ ${lvl === 'edit' ? 'מחובר עם סיסמת עריכה' : 'מחובר עם סיסמת הטיול'}</b>
+      <p class="muted">${lvl === 'edit' ? 'רואים את כל הפרטים, ואפשר להוסיף ולמחוק קישורים.' : 'רואים את כל הפרטים, כולל מספרי הזמנה.'}</p>
+      <button id="logout" class="btn" type="button">יציאה</button>
     </div>` : `
-    <div class="card stack">
-      <b>כניסת עורך</b>
-      <p class="muted">עריכה מהאפליקציה שומרת את השינויים ישר בריפו ב-GitHub. צריך מפתח גישה (token) פעם אחת. הוא נשמר רק במכשיר הזה. מי שאין לו מפתח רק צופה.</p>
-      <details><summary>איך יוצרים מפתח</summary>
-        <ol class="steps">
-          <li>להיכנס ל-<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">יצירת מפתח ב-GitHub</a>.</li>
-          <li>שם: למשל trip-planner. תוקף: עד סוף הטיול.</li>
-          <li>Repository access: ‏Only select repositories ← ‏trip-planner.</li>
-          <li>Permissions ← Repository permissions ← ‏Contents: ‏Read and write.</li>
-          <li>Generate token, להעתיק ולהדביק כאן.</li>
-        </ol>
-      </details>
-      <form id="editor-form" class="stack">
-        <input name="token" type="password" dir="ltr" required placeholder="github_pat_…" autocomplete="off">
-        <button class="btn primary" type="submit">חיבור</button>
-        <p id="editor-status" class="muted" role="status"></p>
-      </form>
-    </div>`;
-  $('editor-off')?.addEventListener('click', () => { store.set('gh-token', ''); updateEditorMenu(); render(true); });
-  $('editor-form')?.addEventListener('submit', async e => {
+    <form id="login-form" class="card stack">
+      <b>כניסה</b>
+      <p class="muted">סיסמת הטיול מציגה גם מספרי הזמנה. סיסמת העריכה מאפשרת גם להוסיף ולמחוק.</p>
+      <input name="key" type="password" required autocomplete="current-password" placeholder="סיסמה">
+      <button class="btn primary" type="submit">כניסה</button>
+      <p id="login-status" class="muted" role="status"></p>
+    </form>`;
+  $('logout')?.addEventListener('click', () => {
+    store.set('trip-key', ''); store.set('trip-level', ''); store.set('sheet-cache', '');
+    resetData(); updateLoginMenu(); render(true);
+  });
+  $('login-form')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const token = e.target.token.value.trim(), status = $('editor-status');
+    const key = e.target.key.value, status = $('login-status');
     status.textContent = 'בודק…';
-    try { await Editor.verify(token); store.set('gh-token', token); updateEditorMenu(); render(true); }
-    catch (err) { status.textContent = err.status === 401 || err.status === 404 ? 'המפתח לא תקין, או שאין לו גישה לריפו trip-planner.' : 'הבדיקה נכשלה. לבדוק חיבור לאינטרנט ולנסות שוב.'; }
+    try {
+      const j = await Sheet.call({ action: 'check', key });
+      if (j.level === 'public') { status.textContent = 'הסיסמה לא נכונה.'; return; }
+      store.set('trip-key', key); store.set('trip-level', j.level);
+      resetData(); updateLoginMenu(); render(true);
+    } catch (err) { status.textContent = sheetError(err); }
   });
 }
-function updateEditorMenu() { $('menu-editor-label').textContent = Editor.isOn() ? 'מצב עריכה · פעיל' : 'מצב עריכה'; }
+function updateLoginMenu() {
+  const k = Sheet.key(), l = Sheet.level();
+  $('menu-editor').hidden = !SHEET_URL;
+  $('menu-editor-label').textContent = !k ? 'כניסה עם סיסמה' : l === 'edit' ? 'מחובר · עריכה' : 'מחובר · צפייה מלאה';
+}
 
 /* ---------- router ---------- */
 const routes = [
@@ -560,7 +631,8 @@ const routes = [
   [/^#\/t\/([\w-]+)\/h\/([\w-]+)$/, viewHotel],
   [/^#\/t\/([\w-]+)\/links$/, viewLinks],
   [/^#\/t\/([\w-]+)$/, viewDays],
-  [/^#\/editor$/, viewEditor],
+  [/^#\/t\/([\w-]+)\/s\/(flights|cars)$/, viewSheetTable],
+  [/^#\/login$/, viewLogin],
 ];
 async function render(keepScroll) {
   const y = window.scrollY;
@@ -605,7 +677,7 @@ window.addEventListener('hashchange', () => setMenu(false));
 const SHARE_URL = new URL('./', location.href).href;
 $('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`הצטרף לאפליקציית הטיולים 🧳\n${SHARE_URL}`);
 $('share-wa').addEventListener('click', () => setMenu(false));
-updateEditorMenu();
+updateLoginMenu();
 
 /* ---------- theme + offline ---------- */
 const THEMES = [null, 'dark', 'light'];

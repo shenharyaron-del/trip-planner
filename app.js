@@ -403,6 +403,22 @@ app.addEventListener('click', e => {
   render(true);
 });
 
+/* ---------- side menu ---------- */
+const drawer = $('drawer'), overlay = $('overlay'), menuBtn = $('menu-btn');
+function setMenu(open) {
+  drawer.classList.toggle('open', open);
+  drawer.setAttribute('aria-hidden', String(!open));
+  menuBtn.setAttribute('aria-expanded', String(open));
+  overlay.hidden = !open;
+}
+menuBtn.addEventListener('click', () => setMenu(!drawer.classList.contains('open')));
+overlay.addEventListener('click', () => setMenu(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+window.addEventListener('hashchange', () => setMenu(false));
+const appUrl = new URL('./', location.href).href;
+$('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`מתכנן הטיולים שלנו 🧳\n${appUrl}`);
+$('share-wa').addEventListener('click', () => setMenu(false));
+
 /* ---------- theme + offline ---------- */
 const THEMES = [null, 'dark', 'light'];
 $('theme').addEventListener('click', () => {

@@ -1,0 +1,1246 @@
+{
+  "id": "iceland",
+  "name": "איסלנד",
+  "currency": "ISK",
+  "timezone": "Atlantic/Reykjavik",
+  "updatedAt": "2026-11-20T21:15:00Z",
+  "notes": [
+    "מסלול ראשוני: עוד אין מלונות וטיסות. אזורי הלינה מתוכננים בלבד.",
+    "ביוני כמעט לא מחשיך (שמש חצות). כדאי מסכות שינה.",
+    "לבדוק מזג אוויר ומצב כבישים כל בוקר: vedur.is ו-umferdin.is. אפשר לרשום את המסלול ב-safetravel.is.",
+    "ברכב שכור רגיל אסור לנסוע בכבישי F (כבישי ההרים).",
+    "בתחנות דלק בשירות עצמי צריך כרטיס אשראי עם קוד PIN.",
+    "יש מצלמות מהירות, והקנסות גבוהים.",
+    "לא לעצור בשולי הכביש 1 לצילום. עוצרים רק במפרצונים.",
+    "יוני הוא עונה עמוסה: להזמין לינה מוקדם, במיוחד בוויק, בהופן ובמיוואטן.",
+    "מרחקי וזמני הנהיגה הם הערכות."
+  ],
+  "hotels": [],
+  "days": [
+    {
+      "date": null,
+      "region": "רייקיאנס ורייקיאוויק",
+      "title": "נחיתה, הלגונה הכחולה וערב ראשון",
+      "hotelId": null,
+      "stayArea": {
+        "name": "רייקיאוויק",
+        "lat": 64.1466,
+        "lng": -21.9426
+      },
+      "blocks": [
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "kef-in",
+              "kind": "airport",
+              "name": "נחיתה בקפלאוויק ואיסוף רכב",
+              "lat": 63.985,
+              "lng": -22.6056,
+              "summary": "שדה התעופה הבינלאומי, כ-50 דק' מרייקיאוויק",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": null,
+              "tips": [
+                "רכב רגיל (לא 4x4) מספיק למסלול הזה: אין בו כבישי F.",
+                "לבדוק שהביטוח כולל נזקי חצץ (GP)."
+              ],
+              "links": []
+            },
+            {
+              "id": "blue-lagoon",
+              "kind": "activity",
+              "name": "הלגונה הכחולה",
+              "lat": 63.8804,
+              "lng": -22.4495,
+              "drive": {
+                "km": 22,
+                "minutes": 20
+              },
+              "summary": "רחצה במים גאותרמיים כחולים בתוך שדה לבה",
+              "description": "ספא גאותרמי בתוך שדה לבה בחצי האי רייקיאנס, קרוב לשדה התעופה.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 150,
+              "tips": [
+                "חובה להזמין מראש עם שעת כניסה.",
+                "מומלץ מרכך שיער: המים מייבשים."
+              ],
+              "links": [
+                {
+                  "label": "אתר רשמי",
+                  "url": "https://www.bluelagoon.com/"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "hallgrimskirkja",
+              "kind": "town",
+              "name": "רייקיאוויק: הלגרימסקירקיה ולאוגאווגור",
+              "lat": 64.1417,
+              "lng": -21.9266,
+              "drive": {
+                "km": 50,
+                "minutes": 45
+              },
+              "summary": "הכנסייה הבולטת בעיר ורחוב הבילויים הראשי",
+              "description": "כנסייה בטון מודרניסטית על הגבעה במרכז העיר, עם מגדל תצפית. ממנה יורדים לרחוב לאוגאווגור עם החנויות והמסעדות.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 120,
+              "tips": [
+                "למגדל התצפית עולים במעלית (בתשלום)."
+              ],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "חוג הזהב",
+      "title": "תינגווטליר, גייסיר וגולפוס",
+      "hotelId": null,
+      "stayArea": {
+        "name": "הלה",
+        "lat": 63.834,
+        "lng": -20.4
+      },
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "thingvellir",
+              "kind": "hike",
+              "name": "פארק לאומי תינגווטליר",
+              "lat": 64.2559,
+              "lng": -21.1299,
+              "drive": {
+                "km": 48,
+                "minutes": 45
+              },
+              "summary": "הליכה בתוך השבר בין הלוחות הטקטוניים",
+              "description": "פארק לאומי ואתר מורשת עולמית של אונסק\"ו. כאן נפגש הפרלמנט האיסלנדי (אלתינג) מאז שנת 930 בערך. אפשר ללכת בבקע אלמנגיאה, בין קירות הסלע של השבר.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 90,
+              "tips": [
+                "החניה בתשלום.",
+                "למי שרוצה: שנורקלינג בבקע סילפרה, בהזמנה מראש."
+              ],
+              "links": [
+                {
+                  "label": "אתר הפארק",
+                  "url": "https://www.thingvellir.is/en/"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "fridheimar",
+              "kind": "food",
+              "name": "פרידהיימר: חממת עגבניות",
+              "lat": 64.1756,
+              "lng": -20.4425,
+              "drive": {
+                "km": 55,
+                "minutes": 50
+              },
+              "summary": "ארוחת צהריים בתוך חממה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "להזמין מקום מראש."
+              ],
+              "links": [
+                {
+                  "label": "אתר המקום",
+                  "url": "https://www.fridheimar.is/en"
+                }
+              ]
+            },
+            {
+              "id": "geysir",
+              "kind": "sight",
+              "name": "גייסיר וסטרוקור",
+              "lat": 64.3104,
+              "lng": -20.3024,
+              "drive": {
+                "km": 20,
+                "minutes": 20
+              },
+              "summary": "שדה גייזרים. סטרוקור מתפרץ כל כמה דקות",
+              "description": "אזור גאותרמי פעיל. הגייזר הגדול, גייסיר, כמעט לא מתפרץ היום, אבל סטרוקור מתפרץ כל כמה דקות.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 45,
+              "tips": [
+                "לעמוד עם הגב לרוח.",
+                "המים רותחים. לא לעבור את החבלים."
+              ],
+              "links": []
+            },
+            {
+              "id": "gullfoss",
+              "kind": "sight",
+              "name": "מפל גולפוס",
+              "lat": 64.3271,
+              "lng": -20.1199,
+              "drive": {
+                "km": 10,
+                "minutes": 10
+              },
+              "summary": "מפל דו-מדרגתי עצום לתוך קניון",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 45,
+              "tips": [
+                "השביל התחתון רטוב מהרסס. כדאי מעיל גשם."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "kind": "choice",
+              "options": [
+                {
+                  "label": "♨️ מעיין חם",
+                  "items": [
+                    {
+                      "id": "secret-lagoon",
+                      "kind": "activity",
+                      "name": "Secret Lagoon (Gamla Laugin)",
+                      "lat": 64.1373,
+                      "lng": -20.3093,
+                      "drive": {
+                        "km": 30,
+                        "minutes": 30
+                      },
+                      "driveToHotel": {
+                        "km": 55,
+                        "minutes": 45
+                      },
+                      "summary": "בריכה גאותרמית טבעית ופשוטה בפלודיר",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 90,
+                      "tips": [
+                        "להביא בגד ים ומגבת."
+                      ],
+                      "links": [
+                        {
+                          "label": "אתר המקום",
+                          "url": "https://secretlagoon.is/"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "label": "🌋 מכתש",
+                  "items": [
+                    {
+                      "id": "kerid",
+                      "kind": "sight",
+                      "name": "מכתש קריד",
+                      "lat": 64.041,
+                      "lng": -20.8851,
+                      "drive": {
+                        "km": 65,
+                        "minutes": 50
+                      },
+                      "driveToHotel": {
+                        "km": 50,
+                        "minutes": 40
+                      },
+                      "summary": "מכתש געשי עם אגם טורקיז",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 30,
+                      "tips": [
+                        "הכניסה בתשלום."
+                      ],
+                      "links": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "החוף הדרומי",
+      "title": "מפלים, קרחון וחוף שחור",
+      "hotelId": null,
+      "stayArea": {
+        "name": "ויק",
+        "lat": 63.4186,
+        "lng": -19.006
+      },
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "seljalandsfoss",
+              "kind": "sight",
+              "name": "סליאלנדספוס וגליופרבואי",
+              "lat": 63.6156,
+              "lng": -19.9886,
+              "drive": {
+                "km": 40,
+                "minutes": 30
+              },
+              "summary": "מפל שאפשר ללכת מאחוריו, ולידו מפל נסתר בתוך נקיק",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "מאחורי המפל נרטבים לגמרי: מעיל גשם וכיסוי לטלפון.",
+                "גליופרבואי נמצא כ-10 דק' הליכה צפונה, בתוך נקיק."
+              ],
+              "links": []
+            },
+            {
+              "id": "skogafoss",
+              "kind": "hike",
+              "name": "סקוגאפוס",
+              "lat": 63.5321,
+              "lng": -19.5114,
+              "drive": {
+                "km": 30,
+                "minutes": 25
+              },
+              "summary": "מפל רחב של כ-60 מטר, ומדרגות לתצפית מלמעלה",
+              "description": "ממדרגות התצפית שליד המפל יוצא שביל לאורך הנהר, עם עוד שורה של מפלים.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 75,
+              "tips": [],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "solheimajokull",
+              "kind": "hike",
+              "name": "קרחון סולהיימאיוקול",
+              "lat": 63.53,
+              "lng": -19.37,
+              "drive": {
+                "km": 10,
+                "minutes": 15
+              },
+              "summary": "הליכה קצרה עד לשון קרחון",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "לא עולים על הקרחון בלי מדריך. יש סיורי הליכה על הקרחון בהזמנה."
+              ],
+              "links": []
+            },
+            {
+              "id": "dyrholaey",
+              "kind": "sight",
+              "name": "דירהולאיי",
+              "lat": 63.402,
+              "lng": -19.129,
+              "drive": {
+                "km": 20,
+                "minutes": 20
+              },
+              "summary": "צוק עם קשת סלע, תצפית לחוף ולפאפינים",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 45,
+              "tips": [
+                "ביוני יש פאפינים על הצוקים."
+              ],
+              "links": []
+            },
+            {
+              "id": "reynisfjara",
+              "kind": "sight",
+              "name": "חוף ריינספיארה",
+              "lat": 63.4044,
+              "lng": -19.045,
+              "drive": {
+                "km": 10,
+                "minutes": 15
+              },
+              "summary": "חוף חול שחור עם עמודי בזלת וסלעי ים",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 45,
+              "tips": [
+                "מסוכן: גלי 'סניקר' מפתיעים. לא להתקרב למים ולא להפנות גב לים."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "vik",
+              "kind": "town",
+              "name": "ויק",
+              "lat": 63.4186,
+              "lng": -19.006,
+              "drive": {
+                "km": 10,
+                "minutes": 10
+              },
+              "summary": "כפר קטן עם כנסייה על הגבעה ונוף לסלעי ריינסדרנגר",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 90,
+              "tips": [],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "ואטנאיוקול",
+      "title": "קניון, סקאפטאפל ולגונת הקרחונים",
+      "hotelId": null,
+      "stayArea": {
+        "name": "הופן",
+        "lat": 64.2539,
+        "lng": -15.2082
+      },
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "fjadrargljufur",
+              "kind": "hike",
+              "name": "קניון פיאדרארגליופור",
+              "lat": 63.771,
+              "lng": -18.172,
+              "drive": {
+                "km": 80,
+                "minutes": 60
+              },
+              "summary": "קניון ירוק ומתפתל, עם שביל לאורך השפה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "ללכת רק על השביל המסומן: הצמחייה רגישה."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "svartifoss",
+              "kind": "hike",
+              "name": "סקאפטאפל ומפל סבארטיפוס",
+              "lat": 64.0275,
+              "lng": -16.9753,
+              "drive": {
+                "km": 70,
+                "minutes": 55
+              },
+              "summary": "הליכה למפל שנופל בין עמודי בזלת",
+              "description": "מסקאפטאפל, חלק מהפארק הלאומי ואטנאיוקול, יוצא שביל מסומן במעלה הגבעה עד מפל סבארטיפוס.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 120,
+              "tips": [],
+              "links": [
+                {
+                  "label": "פארק ואטנאיוקול",
+                  "url": "https://www.vatnajokulsthjodgardur.is/en"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "jokulsarlon",
+              "kind": "sight",
+              "name": "יוקולסרלון",
+              "lat": 64.0484,
+              "lng": -16.1794,
+              "drive": {
+                "km": 56,
+                "minutes": 45
+              },
+              "summary": "לגונה עם קרחונים צפים שהתנתקו מהקרחון",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "אפשר שייט בין הקרחונים (בהזמנה).",
+                "ביוני מחשיך מאוחר מאוד, אז אפשר להגיע גם בערב."
+              ],
+              "links": [
+                {
+                  "label": "פארק ואטנאיוקול",
+                  "url": "https://www.vatnajokulsthjodgardur.is/en"
+                }
+              ]
+            },
+            {
+              "id": "diamond-beach",
+              "kind": "sight",
+              "name": "חוף היהלומים",
+              "lat": 64.044,
+              "lng": -16.177,
+              "drive": {
+                "km": 1,
+                "minutes": 3
+              },
+              "driveToHotel": {
+                "km": 80,
+                "minutes": 60
+              },
+              "summary": "גושי קרח על חול שחור, ממש מול הלגונה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 30,
+              "tips": [],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "הפיורדים המזרחיים",
+      "title": "וסטרהורן, חוף הפיורדים וסיידיספיורדור",
+      "hotelId": null,
+      "stayArea": {
+        "name": "אגילסטאדיר",
+        "lat": 65.2653,
+        "lng": -14.3948
+      },
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "fuel-hofn",
+              "kind": "fuel",
+              "name": "תדלוק בהופן",
+              "lat": null,
+              "lng": null,
+              "summary": "למלא מיכל לפני קטע הפיורדים",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": null,
+              "tips": [
+                "במזרח יש פחות תחנות. לא לתת למיכל לרדת מתחת לחצי."
+              ],
+              "links": []
+            },
+            {
+              "id": "stokksnes",
+              "kind": "sight",
+              "name": "סטוקסנס ווסטרהורן",
+              "lat": 64.249,
+              "lng": -14.97,
+              "drive": {
+                "km": 15,
+                "minutes": 20
+              },
+              "summary": "הר משונן מעל דיונות חול שחור",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "הכניסה דרך שטח פרטי, בתשלום."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "djupivogur",
+              "kind": "town",
+              "name": "דיופיווגור",
+              "lat": 64.656,
+              "lng": -14.285,
+              "drive": {
+                "km": 95,
+                "minutes": 80
+              },
+              "summary": "כפר דייגים שקט. עצירה לצהריים",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "seydisfjordur",
+              "kind": "town",
+              "name": "סיידיספיורדור",
+              "lat": 65.26,
+              "lng": -14.01,
+              "drive": {
+                "km": 177,
+                "minutes": 150
+              },
+              "driveToHotel": {
+                "km": 27,
+                "minutes": 30
+              },
+              "summary": "כפר אמנים צבעוני בקצה פיורד, עם הכנסייה הכחולה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 90,
+              "tips": [
+                "קיצור דרך: כביש 939 (אוקסי) חוסך כשעה, אבל הוא חצץ ותלול. לבדוק שהוא פתוח."
+              ],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "הצפון-מזרח",
+      "title": "קניון סטודלגיל, דטיפוס ומיוואטן",
+      "hotelId": null,
+      "stayArea": {
+        "name": "מיוואטן (ריקיהליד)",
+        "lat": 65.644,
+        "lng": -16.911
+      },
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "studlagil",
+              "kind": "hike",
+              "name": "קניון סטודלגיל",
+              "lat": 65.168,
+              "lng": -15.305,
+              "drive": {
+                "km": 70,
+                "minutes": 60
+              },
+              "summary": "קניון של עמודי בזלת ונהר טורקיז",
+              "description": "קניון שנחשף כשהורידו את מפלס הנהר. יש תצפית מהצד המערבי, והליכה של כמה ק\"מ לירידה בצד המזרחי.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 120,
+              "tips": [
+                "המים טורקיז בעיקר עד אמצע הקיץ. אחר כך הם עלולים להיות עכורים."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "dettifoss",
+              "kind": "sight",
+              "name": "דטיפוס",
+              "lat": 65.8147,
+              "lng": -16.3846,
+              "drive": {
+                "km": 120,
+                "minutes": 100
+              },
+              "summary": "המפל העוצמתי באירופה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "כביש 862 בצד המערבי סלול."
+              ],
+              "links": [
+                {
+                  "label": "פארק ואטנאיוקול",
+                  "url": "https://www.vatnajokulsthjodgardur.is/en"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "hverir",
+              "kind": "sight",
+              "name": "הוורויר",
+              "lat": 65.6411,
+              "lng": -16.8086,
+              "drive": {
+                "km": 35,
+                "minutes": 35
+              },
+              "summary": "שדה גופרית מבעבע, בוץ רותח וארובות קיטור",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 40,
+              "tips": [
+                "ריח חזק של גופרית.",
+                "ללכת רק על השבילים: האדמה רותחת."
+              ],
+              "links": []
+            },
+            {
+              "id": "myvatn-baths",
+              "kind": "activity",
+              "name": "מרחצאות הטבע של מיוואטן",
+              "lat": 65.631,
+              "lng": -16.848,
+              "drive": {
+                "km": 4,
+                "minutes": 5
+              },
+              "driveToHotel": {
+                "km": 4,
+                "minutes": 5
+              },
+              "summary": "לגונה גאותרמית עם נוף לאגם, רגועה יותר מהכחולה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 120,
+              "tips": [
+                "כדאי להזמין מראש."
+              ],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "מיוואטן ← אקוריירי",
+      "title": "מכתשים או לווייתנים, גודאפוס",
+      "hotelId": null,
+      "stayArea": {
+        "name": "אקוריירי",
+        "lat": 65.6835,
+        "lng": -18.0878
+      },
+      "blocks": [
+        {
+          "slot": "day",
+          "items": [
+            {
+              "kind": "choice",
+              "options": [
+                {
+                  "label": "🥾 מכתשים ולבה",
+                  "items": [
+                    {
+                      "id": "hverfjall",
+                      "kind": "hike",
+                      "name": "הוורפיאל",
+                      "lat": 65.605,
+                      "lng": -16.873,
+                      "drive": {
+                        "km": 6,
+                        "minutes": 10
+                      },
+                      "summary": "טיפוס קצר לשפת מכתש ענק והקפה שלו",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 90,
+                      "tips": [],
+                      "links": []
+                    },
+                    {
+                      "id": "dimmuborgir",
+                      "kind": "hike",
+                      "name": "דימובורגיר",
+                      "lat": 65.591,
+                      "lng": -16.911,
+                      "drive": {
+                        "km": 4,
+                        "minutes": 5
+                      },
+                      "summary": "מבוך של עמודי לבה, עם שבילים מסומנים",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 60,
+                      "tips": [],
+                      "links": []
+                    },
+                    {
+                      "id": "skutustadir",
+                      "kind": "hike",
+                      "name": "מכתשי סקוטוסטאדיר",
+                      "lat": 65.566,
+                      "lng": -17.039,
+                      "drive": {
+                        "km": 10,
+                        "minutes": 10
+                      },
+                      "summary": "מכתשים מדומים על שפת האגם, עם שביל קצר",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 45,
+                      "tips": [],
+                      "links": []
+                    },
+                    {
+                      "id": "godafoss",
+                      "kind": "sight",
+                      "name": "גודאפוס",
+                      "lat": 65.6828,
+                      "lng": -17.5502,
+                      "drive": {
+                        "km": 35,
+                        "minutes": 30
+                      },
+                      "driveToHotel": {
+                        "km": 50,
+                        "minutes": 40
+                      },
+                      "summary": "'מפל האלים': מפל רחב בצורת פרסה",
+                      "description": "מפל רחב על נהר סקיאלפנדאפליוט, צמוד לכביש 1. יש תצפיות משתי הגדות.",
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 40,
+                      "tips": [
+                        "בדרך לאקוריירי עוברים במנהרת ואדלהיידי, שהיא בתשלום (מקוון)."
+                      ],
+                      "links": []
+                    }
+                  ]
+                },
+                {
+                  "label": "🐋 תצפית לווייתנים",
+                  "items": [
+                    {
+                      "id": "husavik",
+                      "kind": "activity",
+                      "name": "הוסאוויק: תצפית לווייתנים",
+                      "lat": 66.0449,
+                      "lng": -17.3389,
+                      "drive": {
+                        "km": 55,
+                        "minutes": 45
+                      },
+                      "summary": "שייט לתצפית לווייתנים מעיירת הנמל",
+                      "description": "הוסאוויק נחשבת למקום מרכזי לתצפית לווייתנים באיסלנד. יוצאים לשייט של כמה שעות.",
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 210,
+                      "tips": [
+                        "להזמין שייט מראש.",
+                        "קר על המים גם ביוני: שכבות, כובע וכפפות."
+                      ],
+                      "links": []
+                    },
+                    {
+                      "id": "godafoss-2",
+                      "kind": "sight",
+                      "name": "גודאפוס",
+                      "lat": 65.6828,
+                      "lng": -17.5502,
+                      "drive": {
+                        "km": 45,
+                        "minutes": 40
+                      },
+                      "driveToHotel": {
+                        "km": 50,
+                        "minutes": 40
+                      },
+                      "summary": "'מפל האלים': מפל רחב בצורת פרסה",
+                      "description": "מפל רחב על נהר סקיאלפנדאפליוט, צמוד לכביש 1. יש תצפיות משתי הגדות.",
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 40,
+                      "tips": [
+                        "בדרך לאקוריירי עוברים במנהרת ואדלהיידי, שהיא בתשלום (מקוון)."
+                      ],
+                      "links": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "akureyri",
+              "kind": "town",
+              "name": "אקוריירי",
+              "lat": 65.6835,
+              "lng": -18.0878,
+              "summary": "'בירת הצפון': עיירה נעימה על פיורד, מסעדות וקפה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 120,
+              "tips": [],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "הצפון ← סנייפלסנס",
+      "title": "חוות אדמה, נסיעה מערבה וקירקיופל",
+      "hotelId": null,
+      "stayArea": {
+        "name": "גרונדרפיורדור",
+        "lat": 64.9244,
+        "lng": -23.258
+      },
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "glaumbaer",
+              "kind": "sight",
+              "name": "חוות האדמה גלאומביר",
+              "lat": 65.611,
+              "lng": -19.506,
+              "drive": {
+                "km": 95,
+                "minutes": 75
+              },
+              "summary": "בתי חווה מסורתיים עם גגות דשא",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "drive-west",
+              "kind": "other",
+              "name": "נסיעה מערבה",
+              "lat": null,
+              "lng": null,
+              "summary": "הקטע הארוך של היום. כדאי לעצור לאוכל ולתדלק בדרך",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": null,
+              "tips": [
+                "עקיפה אפשרית: סלע הוויטסרקור בחצי האי ואטנס (כביש חצץ, מוסיף כשעתיים)."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "kirkjufell",
+              "kind": "sight",
+              "name": "קירקיופל",
+              "lat": 64.942,
+              "lng": -23.307,
+              "drive": {
+                "km": 290,
+                "minutes": 230
+              },
+              "driveToHotel": {
+                "km": 3,
+                "minutes": 5
+              },
+              "summary": "ההר המצולם באיסלנד, עם מפל קטן לידו",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 45,
+              "tips": [
+                "האור הכי יפה בערב."
+              ],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "סנייפלסנס",
+      "title": "חופים, צוקים וחזרה לרייקיאוויק",
+      "hotelId": null,
+      "stayArea": {
+        "name": "רייקיאוויק",
+        "lat": 64.1466,
+        "lng": -21.9426
+      },
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "djupalonssandur",
+              "kind": "sight",
+              "name": "דיופאלונסנדור",
+              "lat": 64.753,
+              "lng": -23.896,
+              "drive": {
+                "km": 60,
+                "minutes": 55
+              },
+              "summary": "חוף חלוקי לבה שחורים ושרידי ספינה טרופה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "גם כאן גלים מסוכנים. לא להתקרב למים."
+              ],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "arnarstapi",
+              "kind": "hike",
+              "name": "ארנרסטאפי והליכה להלנאר",
+              "lat": 64.767,
+              "lng": -23.623,
+              "drive": {
+                "km": 20,
+                "minutes": 25
+              },
+              "summary": "צוקי בזלת וקשתות סלע. שביל חוף לכפר הלנאר",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 120,
+              "tips": [
+                "השביל ארנרסטאפי–הלנאר כ-2.5 ק\"מ לכל כיוון."
+              ],
+              "links": []
+            },
+            {
+              "id": "budir",
+              "kind": "sight",
+              "name": "הכנסייה השחורה בבודיר",
+              "lat": 64.8217,
+              "lng": -23.3843,
+              "drive": {
+                "km": 18,
+                "minutes": 20
+              },
+              "summary": "כנסייה שחורה ובודדה בשדה לבה",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 20,
+              "tips": [],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "evening",
+          "items": [
+            {
+              "id": "ytri-tunga",
+              "kind": "sight",
+              "name": "יטרי טונגה",
+              "lat": 64.803,
+              "lng": -23.081,
+              "drive": {
+                "km": 18,
+                "minutes": 15
+              },
+              "driveToHotel": {
+                "km": 165,
+                "minutes": 130
+              },
+              "summary": "חוף זהוב, ולפעמים כלבי ים על הסלעים",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 30,
+              "tips": [],
+              "links": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": null,
+      "region": "רייקיאוויק",
+      "title": "בוקר בעיר וטיסה",
+      "hotelId": null,
+      "stayArea": null,
+      "blocks": [
+        {
+          "slot": "morning",
+          "items": [
+            {
+              "id": "harpa",
+              "kind": "town",
+              "name": "הארפה והנמל הישן",
+              "lat": 64.1504,
+              "lng": -21.9326,
+              "summary": "אולם הקונצרטים עם חזית הזכוכית, וטיול לאורך הנמל",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": "הליכה ממרכז העיר.",
+              "durationMinutes": 120,
+              "tips": [],
+              "links": []
+            }
+          ]
+        },
+        {
+          "slot": "noon",
+          "items": [
+            {
+              "id": "kef-out",
+              "kind": "airport",
+              "name": "קפלאוויק: החזרת רכב וטיסה",
+              "lat": 63.985,
+              "lng": -22.6056,
+              "drive": {
+                "km": 50,
+                "minutes": 45
+              },
+              "summary": "להגיע עם מרווח להחזרת הרכב",
+              "description": null,
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": null,
+              "tips": [],
+              "links": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

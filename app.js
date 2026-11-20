@@ -193,7 +193,7 @@ async function viewTrips() {
         <div class="muted">${t.startDate && t.endDate
           ? `${fmtDate(t.startDate, { day: 'numeric', month: 'short' })} – ${fmtDate(t.endDate, { day: 'numeric', month: 'short', year: 'numeric' })}`
           : esc(t.datesNote || 'תאריכים: לא ידוע')}</div>
-        <div class="muted">${esc(tripStatus(t).text)}</div>
+        ${t.startDate && t.endDate ? `<div class="muted">${esc(tripStatus(t).text)}</div>` : ''}
       </div>
     </a>`).join('')}</div>`;
 }
@@ -263,7 +263,8 @@ async function viewDay(id, dayIdx) {
   });
   const route = dayRouteUrl(points, lastNight, tonight);
 
-  const last = items[items.length - 1];
+  // return-to-lodging leg: last item that defines driveToHotel (later items may be in town, on foot)
+  const last = [...items].reverse().find(it => 'driveToHotel' in it);
   const legs = items.filter(it => hasLeg(it) && (it.kind !== 'fuel' || it.drive)).map(it => it.drive);
   if (last && 'driveToHotel' in last) legs.push(last.driveToHotel);
   const km = legs.reduce((s, d) => s + (d?.km || 0), 0);

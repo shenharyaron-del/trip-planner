@@ -331,3 +331,4 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 .cat-tile i { font-style: normal; font-size: 22px; line-height: 1; }
 .cat-tile input:checked + span { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .cat-tile input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app-version { position: absolute; bottom: calc(12px + env(safe-area-inset-bottom)); inset-inline: 16px; font-size: 12px; margin: 0; }

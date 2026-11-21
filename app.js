@@ -1,4 +1,6 @@
 'use strict';
+// shown at the bottom of the side menu, to check which version a phone is running
+const APP_VERSION = '2026-11-21.2';
 
 /* ---------- data source (swap here for Google Sheets later) ---------- */
 const DataSource = {
@@ -1426,6 +1428,8 @@ $('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`הצטרף ל�
 $('share-wa').addEventListener('click', () => setMenu(false));
 updateLoginMenu();
 updatePending();
+$('app-version').textContent = `גרסה ${APP_VERSION} · מצב תצוגה: ${({ dark: 'כהה', light: 'בהיר' })[document.documentElement.dataset.theme] || 'אוטומטי'}`;
+$('theme').addEventListener('click', () => setTimeout(() => { $('app-version').textContent = `גרסה ${APP_VERSION} · מצב תצוגה: ${({ dark: 'כהה', light: 'בהיר' })[document.documentElement.dataset.theme] || 'אוטומטי'}`; }, 0));
 if (SHEET_URL && Outbox.all().length) Sheet.flush();
 
 /* ---------- theme + offline ---------- */

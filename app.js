@@ -95,8 +95,9 @@ const lodging = (t, day) => {
 };
 // name of where we sleep (booked hotel, else planned area) and whether it differs from last night
 const stayName = (t, day) => { const h = day && t.hotelById[day.hotelId]; return h ? h.name : day && day.stayArea ? day.stayArea.name : null; };
-const changesHotel = (t, day) => day.index > 0 && !!stayName(t, day) && !!stayName(t, t.days[day.index - 1])
-  && stayName(t, day) !== stayName(t, t.days[day.index - 1]);
+// suitcase days: arriving at the first lodging, moving to a new one, or leaving the last one
+const prevStay = (t, day) => (day.index > 0 ? stayName(t, t.days[day.index - 1]) : null);
+const changesHotel = (t, day) => (stayName(t, day) || prevStay(t, day)) && stayName(t, day) !== prevStay(t, day);
 // "drive" key absent = no driving leg (walk, ferry, start point); null = unknown
 const hasLeg = it => 'drive' in it;
 
@@ -318,9 +319,9 @@ async function viewDays(id) {
         <div class="day-main">
           <div class="day-date">${d.date ? esc(fmtDate(d.date, { weekday: 'long', day: 'numeric', month: 'long' })) : 'תאריך: לא ידוע'}</div>
           <div class="day-title">${val(d.title)}</div>
-          <div class="muted">📍 ${val(d.region)}${stayName(t, d) ? (changesHotel(t, d)
-            ? ` · <span class="move" title="מעבר מלון">🧳 ${esc(stayName(t, d))}</span>`
-            : ` · 🛏 ${esc(stayName(t, d))}`) : ''}</div>
+          <div class="muted">📍 ${val(d.region)}${changesHotel(t, d)
+            ? ` · <span class="move" title="מעבר מלון">🧳 ${esc(stayName(t, d) || 'עזיבה')}</span>`
+            : stayName(t, d) ? ` · 🛏 ${esc(stayName(t, d))}` : ''}</div>
         </div>
         ${isToday ? '<span class="badge">היום</span>' : ''}
       </a>`;
@@ -471,7 +472,9 @@ async function viewDay(id, dayIdx) {
       }).join('')}
     </section>`).join('');
 
-  const move = changesHotel(t, day) ? `<div class="move-bar">🧳 מעבר מלון היום · יוצאים מ${esc(stayName(t, t.days[day.index - 1]))}</div>` : '';
+  const from = prevStay(t, day), to = stayName(t, day);
+  const move = !changesHotel(t, day) ? ''
+    : `<div class="move-bar">🧳 ${!from ? 'צ׳ק-אין בלינה הראשונה' : !to ? `יום עזיבה · צ׳ק-אאוט מ${esc(from)}` : `מעבר מלון היום · יוצאים מ${esc(from)}`}</div>`;
   app.innerHTML = `
     ${move}
     ${hotel

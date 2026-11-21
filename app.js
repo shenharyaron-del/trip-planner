@@ -249,44 +249,80 @@ function noteHtml(t, dayIdx, itemId) {
   const r = noteRow(t, dayIdx, itemId), text = ((r || {})['הערה'] || '').trim();
   if (notesMode && canEdit()) {
     return `<div class="note-wrap"><textarea class="note-edit" rows="2" placeholder="${itemId ? 'הערה למקום הזה…' : 'הערה ליום הזה…'}"
-      data-trip="${esc(t.id)}" data-day="${dayIdx + 1}" data-item="${esc(itemId)}" data-id="${esc((r || {})['מזהה'] || '')}">${esc(text)}</textarea>
+      data-trip="${esc(t.id)}" data-day="${dayIdx + 1}" data-item="${esc(itemId)}" data-orig="${esc(text)}">${esc(text)}</textarea>
       <span class="note-status muted" aria-live="polite"></span></div>`;
   }
   return text ? `<div class="note-show">📝 ${esc(text)}</div>` : '';
 }
-const pendingNotes = new Set();
-async function saveNote(el) {
-  const status = el.parentElement.querySelector('.note-status');
+// Notes are saved in the background: the screen updates from the local copy right away,
+// and saves of the same note run one after another so a quick edit/delete cannot race.
+const noteKey = (trip, day, item) => `${trip}|${day}|${item}`;
+const noteIds = new Map();     // note key -> sheet row id (known after a save)
+const noteQueue = new Map();   // note key -> last save promise
+function setLocalNote(trip, day, item, text) {
+  const tb = Sheet.data && Sheet.data.tables && Sheet.data.tables.notes;
+  if (!tb) return;
+  const k = noteKey(trip, day, item);
+  const i = tb.rows.findIndex(r => noteKey(r['טיול'], r['יום'], r['פריט'] || '') === k);
+  if (i >= 0 && !noteIds.has(k) && tb.rows[i]['מזהה']) noteIds.set(k, tb.rows[i]['מזהה']);
+  if (!text) { if (i >= 0) tb.rows.splice(i, 1); return; }
+  const row = { 'מזהה': (i >= 0 && tb.rows[i]['מזהה']) || '', 'טיול': trip, 'יום': day, 'פריט': item, 'הערה': text };
+  if (i >= 0) tb.rows[i] = row; else tb.rows.push(row);
+}
+function saveNote(el) {
+  const { trip, day, item } = el.dataset;
   const text = el.value.trim();
-  status.textContent = 'שומר…';
-  const job = (async () => {
+  if (text === el.dataset.orig) return Promise.resolve();
+  el.dataset.orig = text;
+  const k = noteKey(trip, day, item);
+  setLocalNote(trip, day, item, text);
+  const status = el.parentElement && el.parentElement.querySelector('.note-status');
+  if (status) status.textContent = 'שומר…';
+  const job = (noteQueue.get(k) || Promise.resolve()).catch(() => {}).then(async () => {
     if (!text) {
-      if (el.dataset.id) await Sheet.call({ action: 'delete', table: 'notes', id: el.dataset.id });
-      el.dataset.id = '';
+      const id = noteIds.get(k);
+      if (id) await Sheet.call({ action: 'delete', table: 'notes', id });
+      noteIds.delete(k);
     } else {
       const j = await Sheet.call({ action: 'upsert', table: 'notes', match: ['טיול', 'יום', 'פריט'],
-        row: { 'טיול': el.dataset.trip, 'יום': el.dataset.day, 'פריט': el.dataset.item, 'הערה': text, 'עודכן': new Date().toISOString() } });
-      el.dataset.id = j.row['מזהה'];
+        row: { 'טיול': trip, 'יום': day, 'פריט': item, 'הערה': text, 'עודכן': new Date().toISOString() } });
+      noteIds.set(k, j.row['מזהה']);
     }
-  })();
-  pendingNotes.add(job);
-  try { await job; status.textContent = 'נשמר ✓'; }
-  catch (err) { status.textContent = sheetError(err); }
-  finally { pendingNotes.delete(job); }
+  });
+  noteQueue.set(k, job);
+  job.then(() => { if (status && status.isConnected) status.textContent = 'נשמר ✓'; })
+    .catch(err => {
+      if (status && status.isConnected) status.textContent = sheetError(err);
+      else toast(`ההערה לא נשמרה: ${sheetError(err)}`);
+    });
+  return job;
+}
+function toast(msg) {
+  let el = $('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.hidden = true; }, 6000);
 }
 app.addEventListener('change', e => { if (e.target.classList.contains('note-edit')) saveNote(e.target); });
-app.addEventListener('click', async e => {
-  const btn = e.target.closest('#notes-toggle');
-  if (!btn) return;
-  btn.disabled = true;
-  if (notesMode) {   // closing: wait for saves, then show only the notes that exist
-    document.activeElement && document.activeElement.blur();
-    await new Promise(r => setTimeout(r, 0));
-    await Promise.allSettled([...pendingNotes]);
-    try { await Sheet.load(true); } catch { /* keep what we have */ }
-  }
+// toggle on touch-down, before the keyboard closes and the page jumps
+function toggleNotes() {
+  if (notesMode) app.querySelectorAll('.note-edit').forEach(saveNote);
   notesMode = !notesMode;
   render(true);
+}
+let lastToggle = 0;
+app.addEventListener('pointerdown', e => {
+  if (!e.target.closest('#notes-toggle')) return;
+  e.preventDefault();          // keep focus: no blur, no keyboard jump
+  lastToggle = Date.now();
+  toggleNotes();
+});
+app.addEventListener('click', e => {
+  if (!e.target.closest('#notes-toggle')) return;
+  if (Date.now() - lastToggle < 800) return;   // already handled on pointerdown
+  toggleNotes();               // keyboard (Enter / Space)
 });
 
 function itemCard(t, it, numById) {

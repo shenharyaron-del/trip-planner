@@ -395,7 +395,7 @@ async function viewHotel(id, hotelId) {
 
 /* ---------- Google Sheets backend (apps-script/Code.gs) ---------- */
 // Web-app URL of the deployed Apps Script (…/exec). Empty = not connected yet.
-const SHEET_URL = '';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwau09MYJrEnD-g1ty0_K5eIjtu8AVWsDpRVpAkj-yA8T6Rw6e9vkXZBxvVgVooKKS-Kw/exec';
 const Sheet = {
   key: () => store.get('trip-key') || '',
   level: () => store.get('trip-level') || 'public',

@@ -172,6 +172,43 @@ function drawMap(el, points, hotel, tripId) {
   currentMaps.push(map);
 }
 
+// whole trip on one map: main places of every day (colored by day) and the line between the nights
+const DAY_COLORS = ['#0f766e', '#1d4ed8', '#ea580c', '#7c3aed', '#db2777', '#65a30d', '#92400e', '#0ea5e9', '#dc2626', '#475569'];
+const dayColor = i => DAY_COLORS[i % DAY_COLORS.length];
+function drawTripMap(el, t) {
+  if (!window.L || !el) return;
+  const map = L.map(el, { scrollWheelZoom: false });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+  const all = [], nights = [];
+  t.days.forEach(day => {
+    const color = dayColor(day.index);
+    effectiveItems(t, day).filter(it => hasLL(it) && it.kind !== 'fuel').forEach(it => {
+      L.marker([it.lat, it.lng], { icon: L.divIcon({ className: 'day-pin-wrap', html: `<span class="pin day-pin" style="background:${color}">${day.index + 1}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] }) })
+        .addTo(map)
+        .bindPopup(`<a href="#/t/${esc(t.id)}/i/${esc(it.id)}">${esc(it.name)}</a><br><a href="#/t/${esc(t.id)}/d/${day.index}">יום ${day.index + 1}${day.region ? ' · ' + esc(day.region) : ''}</a>`);
+      all.push([it.lat, it.lng]);
+    });
+    const stay = lodging(t, day);
+    if (stay) nights.push({ stay, day });
+  });
+  // route between the nights, in order
+  if (nights.length > 1) L.polyline(nights.map(n => [n.stay.lat, n.stay.lng]), { color: '#334155', weight: 2, opacity: .6, dashArray: '4 6' }).addTo(map);
+  const seen = new Map();
+  nights.forEach(({ stay, day }) => {
+    const k = `${stay.lat},${stay.lng}`;
+    seen.set(k, [...(seen.get(k) || []), day.index + 1]);
+  });
+  seen.forEach((daysHere, k) => {
+    const [lat, lng] = k.split(',').map(Number);
+    const n = nights.find(x => x.stay.lat === lat && x.stay.lng === lng);
+    L.marker([lat, lng], { icon: L.divIcon({ className: 'pin hotel', html: '🛏', iconSize: [24, 24], iconAnchor: [12, 12] }), zIndexOffset: -100 })
+      .addTo(map).bindPopup(`🛏 ${esc(n.stay.name)}<br>לילות: ${daysHere.map(d => 'יום ' + d).join(', ')}`);
+    all.push([lat, lng]);
+  });
+  if (all.length) map.fitBounds(all, { padding: [20, 20] }); else map.setView([64.9, -18.6], 6);
+  currentMaps.push(map);
+}
+
 /* ---------- chrome ---------- */
 function setHeader(title, back, backLabel) {
   $('title').textContent = title;
@@ -228,7 +265,14 @@ async function viewDays(id) {
         </div>
         ${isToday ? '<span class="badge">היום</span>' : ''}
       </a>`;
-    }).join('') || '<p class="empty">אין עדיין ימים</p>'}</div>`;
+    }).join('') || '<p class="empty">אין עדיין ימים</p>'}</div>
+    ${t.days.length ? `
+    <section class="trip-map-section">
+      <h3>🗺️ מפת הטיול</h3>
+      <div id="trip-map" class="map trip-map" dir="ltr"></div>
+      <div class="map-legend">${t.days.map(d => `<a href="#/t/${esc(t.id)}/d/${d.index}"><span class="dot" style="background:${dayColor(d.index)}"></span>יום ${d.index + 1}</a>`).join('')}</div>
+    </section>` : ''}`;
+  drawTripMap($('trip-map'), t);
   // back from a day: scroll to the day we left; otherwise to today
   const from = lastDay[t.id];
   const target = (from !== undefined && app.querySelector(`[data-day="${from}"]`)) || $('today');

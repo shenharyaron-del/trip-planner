@@ -270,3 +270,14 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 
 .toast { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom)); inset-inline: 16px; z-index: 1300; padding: 12px 14px; border-radius: 12px; background: #b91c1c; color: #fff; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
 .toast.info { background: #1f2937; }
+
+/* trip overview map */
+.trip-map-section { margin-top: 22px; }
+.trip-map-section h3 { font-size: 16px; margin: 0 2px 8px; }
+.trip-map { height: 380px; margin: 0; }
+.pin.day-pin { background: var(--pin, var(--accent)); color: #fff; font-size: 12px; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; font-size: 13px; }
+.map-legend a { display: inline-flex; align-items: center; gap: 5px; color: var(--text); }
+.map-legend .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border); }
+.day-pin-wrap { background: none; border: 0; }
+.day-pin-wrap .day-pin { width: 24px; height: 24px; }

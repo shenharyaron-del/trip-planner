@@ -145,30 +145,83 @@ function dayRouteUrl(points, startHotel, endHotel) {
 /* ---------- map ---------- */
 let currentMaps = [];
 function clearMaps() { currentMaps.forEach(m => m.remove()); currentMaps = []; }
-function drawMap(el, points, hotel, tripId) {
+// opts.start: where the day starts (last night's lodging); opts.toHotel: drive to the lodging, from the place opts.toHotelFrom.
+// Each leg with a known drive gets a label (distance · time) at its middle.
+function drawMap(el, points, hotel, tripId, opts = {}) {
   if (!window.L || !el) return;
   const map = L.map(el, { scrollWheelZoom: false });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '© OpenStreetMap',
   }).addTo(map);
   const pin = (html, cls) => L.divIcon({ className: `pin ${cls || ''}`, html, iconSize: [28, 28], iconAnchor: [14, 14] });
-  const line = [];
-  if (hasLL(hotel)) {
-    L.marker([hotel.lat, hotel.lng], { icon: pin('🛏', 'hotel') }).addTo(map)
-      .bindPopup(hotel.id ? `<a href="#/t/${tripId}/h/${esc(hotel.id)}">${esc(hotel.name)}</a>` : esc(hotel.name));
-    line.push([hotel.lat, hotel.lng]);
+  const hotelPopup = h => h.id ? `<a href="#/t/${tripId}/h/${esc(h.id)}">${esc(h.name)}</a>` : esc(h.name);
+  const ll = p => [p.lat, p.lng];
+  const sameSpot = (a, b) => a && b && a.lat === b.lat && a.lng === b.lng;
+  const start = hasLL(opts.start) ? opts.start : hasLL(hotel) ? hotel : null;
+  const line = [], legs = [];
+  let pendingToHotel = null;
+  if (start) {
+    if (!sameSpot(start, hotel)) L.marker(ll(start), { icon: pin('🛏', 'hotel start') }).addTo(map).bindPopup(`יציאה: ${hotelPopup(start)}`);
+    line.push(start);
   }
+  if (hasLL(hotel)) L.marker(ll(hotel), { icon: pin('🛏', 'hotel') }).addTo(map).bindPopup(hotelPopup(hotel));
   points.forEach(p => {
     const cls = p.kind === 'fuel' ? 'fuel' : '';
-    L.marker([p.lat, p.lng], { icon: pin(p.kind === 'fuel' ? '⛽' : p.num, cls) }).addTo(map)
+    L.marker(ll(p), { icon: pin(p.kind === 'fuel' ? '⛽' : p.num, cls) }).addTo(map)
       .bindPopup(`<a href="#/t/${tripId}/i/${esc(p.id)}">${esc(p.name)}</a>`);
-    line.push([p.lat, p.lng]);
+    if (line.length && p.drive) legs.push([line[line.length - 1], p, p.drive]);
+    else if (line.length && pendingToHotel) legs.push([line[line.length - 1], p, pendingToHotel]);  // e.g. into town where we sleep
+    pendingToHotel = null;
+    line.push(p);
+    if (p.id === opts.toHotelFrom) pendingToHotel = opts.toHotel;
   });
-  if (hasLL(hotel) && points.length) line.push([hotel.lat, hotel.lng]);
-  if (line.length > 1) L.polyline(line, { color: '#0f766e', weight: 3, opacity: .7, dashArray: '6 8' }).addTo(map);
-  if (line.length > 1) map.fitBounds(line, { padding: [28, 28] });
-  else if (line.length === 1) map.setView(line[0], 12);
+  if (hasLL(hotel) && points.length) {
+    if (pendingToHotel) legs.push([line[line.length - 1], hotel, pendingToHotel]);
+    line.push(hotel);
+  }
+  if (line.length > 1) L.polyline(line.map(ll), { color: '#0f766e', weight: 3, opacity: .7, dashArray: '6 8' }).addTo(map);
+  legs.forEach(([a, b, d]) => {
+    if (isNil(d.km) && isNil(d.minutes)) return;
+    // short label (time; distance only if time is unknown) so more of them fit
+    const m = d.minutes;
+    const text = !isNil(m) ? (m < 60 ? `${m} ד׳` : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} ש׳`) : `${d.km} ק״מ`;
+    // nudge the label off the line, perpendicular to the leg (direction does not change with zoom)
+    const pa = map.project([a.lat, a.lng], 10), pb = map.project([b.lat, b.lng], 10);
+    const dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
+    let ox = -dy / len, oy = dx / len;
+    if (oy > 0) { ox = -ox; oy = -oy; }   // prefer above the line
+    const shift = `transform: translate(calc(-50% + ${(ox * 16).toFixed(1)}px), calc(-50% + ${(oy * 16).toFixed(1)}px))`;
+    L.marker([(a.lat + b.lat) / 2, (a.lng + b.lng) / 2], {
+      icon: L.divIcon({ className: 'seg-label', html: `<span style="${shift}" title="${esc(fmtDrive(d))}">${esc(text)}</span>`, iconSize: null }),
+      interactive: false, keyboard: false, zIndexOffset: -500,
+    }).addTo(map);
+  });
+  if (line.length > 1) map.fitBounds(line.map(ll), { padding: [28, 28] });
+  else if (line.length === 1) map.setView(ll(line[0]), 12);
   else map.setView([64.9, -18.6], 6);
+  // hide labels that would cover a pin or another label; zooming in reveals them
+  const declutter = () => {
+    const taken = [...el.querySelectorAll('.leaflet-marker-icon.pin')].map(n => n.getBoundingClientRect());
+    const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    el.querySelectorAll('.seg-label span').forEach(span => {
+      span.style.visibility = 'visible';
+      const r = span.getBoundingClientRect();
+      if (taken.some(t => hit(r, t))) span.style.visibility = 'hidden';
+      else taken.push(r);
+    });
+    const hint = el.nextElementSibling && el.nextElementSibling.classList.contains('map-hint') ? el.nextElementSibling : null;
+    if (hint && !userZoomed) hint.hidden = !el.querySelector('.seg-label span[style*="hidden"]');
+  };
+  let userZoomed = false;
+  map.on('zoomstart', () => {
+    if (!fitted) return;
+    userZoomed = true;
+    const hint = el.nextElementSibling;
+    if (hint && hint.classList.contains('map-hint')) hint.hidden = true;
+  });
+  map.on('zoomend moveend', declutter);
+  let fitted = false;
+  setTimeout(() => { declutter(); fitted = true; }, 0);
   currentMaps.push(map);
 }
 
@@ -419,6 +472,7 @@ async function viewDay(id, dayIdx) {
         ? `<div class="hotel-bar"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה · טרם הוזמן</small><b>אזור ${esc(day.stayArea.name)}</b></div></div>`
         : `<div class="hotel-bar"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה</small>${day.index === t.days.length - 1 ? 'יום אחרון, אין לינה' : UNKNOWN}</div></div>`}
     <div id="map" class="map" dir="ltr"></div>
+    <p class="map-hint muted" hidden>🔍 הגדילו את המפה כדי לראות את כל זמני הנסיעה</p>
     ${route ? `<a class="btn primary" href="${esc(route)}" target="_blank" rel="noopener">🗺️ מסלול היום בגוגל מפות</a>` : ''}
     ${legs.length ? `<div class="drive-total">🚗 סה״כ נהיגה: ~${km} ק״מ · ${fmtMin(min) || '0 דק׳'}${partial ? ' (חלק מהמקטעים לא ידועים)' : ''}</div>` : ''}
     ${canEdit() ? `<button class="notes-toggle ${notesMode ? 'on' : ''}" type="button" id="notes-toggle" aria-pressed="${notesMode}"><span>📝 מצב הערות</span><span class="switch"></span></button>` : ''}
@@ -426,7 +480,7 @@ async function viewDay(id, dayIdx) {
     ${blocks}
     ${last && 'driveToHotel' in last ? `<div class="drive" style="margin-top:6px">🚗 חזרה ללינה: ${esc(fmtDrive(last.driveToHotel))}</div>` : ''}`;
 
-  drawMap($('map'), points, tonight, t.id);
+  drawMap($('map'), points, tonight, t.id, { start: lastNight, toHotelFrom: last && last.id, toHotel: last && last.driveToHotel });
 }
 
 async function viewItem(id, itemId) {

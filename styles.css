@@ -281,3 +281,10 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 .map-legend .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border); }
 .day-pin-wrap { background: none; border: 0; }
 .day-pin-wrap .day-pin { width: 24px; height: 24px; }
+
+.seg-label { background: none; border: 0; width: auto !important; height: auto !important; }
+.seg-label span { display: inline-block; transform: translate(-50%, -50%); white-space: nowrap; padding: 2px 7px; border-radius: 99px; background: rgba(255,255,255,.92); color: #0f3d38; font: 600 11px/1.4 system-ui, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,.25); direction: rtl; }
+.pin.hotel.start { opacity: .75; }
+.map:not(.small):not(.trip-map) { height: 300px; }
+.seg-label span { font-size: 11px; padding: 1px 6px; }
+.map-hint { font-size: 12px; text-align: center; margin: -6px 0 10px; }

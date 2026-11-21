@@ -292,3 +292,6 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 .move { font-weight: 600; color: var(--text); }
 .move-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; padding: 8px 12px; border-radius: 12px; background: var(--accent-soft); font-size: 14px; font-weight: 600; }
 .slot ~ .notes-toggle, .drive ~ .notes-toggle { margin-top: 22px; }
+
+.booked-icon { position: relative; display: inline-block; }
+.booked-icon i { position: absolute; bottom: -3px; inset-inline-start: -5px; width: 13px; height: 13px; border-radius: 50%; background: #16a34a; color: #fff; font: 700 9px/13px system-ui, sans-serif; font-style: normal; text-align: center; box-shadow: 0 0 0 1.5px var(--surface); }

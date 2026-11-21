@@ -386,16 +386,27 @@ function toast(msg, kind) {
 }
 app.addEventListener('change', e => { if (e.target.classList.contains('note-edit')) saveNote(e.target); });
 // toggle on touch-down, before the keyboard closes and the page jumps
-function toggleNotes() {
+async function toggleNotes() {
   if (notesMode) app.querySelectorAll('.note-edit').forEach(saveNote);
   notesMode = !notesMode;
-  render(true);
+  // the page above the toggle grows/shrinks: keep the toggle where the finger is
+  const before = ($('notes-toggle') || {}).getBoundingClientRect?.().top;
+  await render(true);
+  const btn = $('notes-toggle');
+  if (btn && before !== undefined) window.scrollBy(0, btn.getBoundingClientRect().top - before);
+}
+// the click that follows a touch-down toggle must not land on whatever is now under the finger
+function swallowNextClick() {
+  const stop = ev => { ev.preventDefault(); ev.stopPropagation(); };
+  document.addEventListener('click', stop, { capture: true, once: true });
+  setTimeout(() => document.removeEventListener('click', stop, { capture: true }), 800);
 }
 let lastToggle = 0;
 app.addEventListener('pointerdown', e => {
   if (!e.target.closest('#notes-toggle')) return;
   e.preventDefault();          // keep focus: no blur, no keyboard jump
   lastToggle = Date.now();
+  swallowNextClick();
   toggleNotes();
 });
 app.addEventListener('click', e => {
@@ -486,10 +497,10 @@ async function viewDay(id, dayIdx) {
     <p class="map-hint muted" hidden>🔍 הגדילו את המפה כדי לראות את כל זמני הנסיעה</p>
     ${route ? `<a class="btn primary" href="${esc(route)}" target="_blank" rel="noopener">🗺️ מסלול היום בגוגל מפות</a>` : ''}
     ${legs.length ? `<div class="drive-total">🚗 סה״כ נהיגה: ~${km} ק״מ · ${fmtMin(min) || '0 דק׳'}${partial ? ' (חלק מהמקטעים לא ידועים)' : ''}</div>` : ''}
-    ${canEdit() ? `<button class="notes-toggle ${notesMode ? 'on' : ''}" type="button" id="notes-toggle" aria-pressed="${notesMode}"><span>📝 מצב הערות</span><span class="switch"></span></button>` : ''}
     ${notesMode || noteText(t, day.index, '') ? `<div class="note-label">הערה ליום</div>${noteHtml(t, day.index, '')}` : ''}
     ${blocks}
-    ${last && 'driveToHotel' in last ? `<div class="drive" style="margin-top:6px">🚗 חזרה ללינה: ${esc(fmtDrive(last.driveToHotel))}</div>` : ''}`;
+    ${last && 'driveToHotel' in last ? `<div class="drive" style="margin-top:6px">🚗 חזרה ללינה: ${esc(fmtDrive(last.driveToHotel))}</div>` : ''}
+    ${canEdit() ? `<button class="notes-toggle ${notesMode ? 'on' : ''}" type="button" id="notes-toggle" aria-pressed="${notesMode}"><span>📝 מצב הערות</span><span class="switch"></span></button>` : ''}`;
 
   drawMap($('map'), points, tonight, t.id, { start: lastNight, toHotelFrom: last && last.id, toHotel: last && last.driveToHotel });
 }

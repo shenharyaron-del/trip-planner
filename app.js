@@ -316,7 +316,6 @@ async function viewDay(id, dayIdx) {
         : `<div class="hotel-bar"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה</small>${day.index === t.days.length - 1 ? 'יום אחרון, אין לינה' : UNKNOWN}</div></div>`}
     <div id="map" class="map" dir="ltr"></div>
     ${route ? `<a class="btn primary" href="${esc(route)}" target="_blank" rel="noopener">🗺️ מסלול היום בגוגל מפות</a>` : ''}
-    ${canEdit() ? `<a class="btn" style="margin-top:8px" href="#/research/${esc(t.id)}/${day.index + 1}">🔎 בקשת בדיקת מידע ליום הזה</a>` : ''}
     ${legs.length ? `<div class="drive-total">🚗 סה״כ נהיגה: ~${km} ק״מ · ${fmtMin(min) || '0 דק׳'}${partial ? ' (חלק מהמקטעים לא ידועים)' : ''}</div>` : ''}
     ${blocks}
     ${last && 'driveToHotel' in last ? `<div class="drive" style="margin-top:6px">🚗 חזרה ללינה: ${esc(fmtDrive(last.driveToHotel))}</div>` : ''}`;
@@ -356,7 +355,7 @@ async function viewItem(id, itemId) {
         ${sources.length ? `<ul>${sources.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || hostOf(l.url))}</a></li>`).join('')}</ul>` : ''}
         ${it.checkedAt ? `<p class="muted">נבדק ב-${esc(fmtDate(it.checkedAt, { day: 'numeric', month: 'long', year: 'numeric' }))}</p>` : ''}</section>` : ''}
       ${it.editRow ? `<p class="muted edited">✏️ חלק מהמידע נערך ידנית${it.editedAt ? ` (${esc(it.editedAt.slice(0, 10))})` : ''}</p>` : ''}
-      ${canEdit() ? itemEditHtml(t, it) : ''}
+      ${canEdit() ? researchHtml(t, it) + itemEditHtml(t, it) : ''}
     </article>`;
   if (hasLL(it)) drawMap($('map'), [{ ...it, num: '•' }], null, t.id);
 }
@@ -702,6 +701,35 @@ app.addEventListener('click', async e => {
   } catch (err) { del.disabled = false; alert(sheetError(err)); }
 });
 
+// request an info check for this place: text the editor pastes to Claude (the app cannot reach Claude itself)
+function researchHtml(t, it) {
+  return `
+    <details class="card add-box" id="research-box">
+      <summary>🔎 בקשת בדיקת מידע</summary>
+      <form id="research-form" class="link-form" data-trip="${esc(t.id)}" data-item="${esc(it.id)}">
+        <p class="muted">מעתיקים את הבקשה ומדביקים בצ'אט עם Claude. Claude יחפש שעות, מחיר ואיך מגיעים, ויוסיף קישור למקור.</p>
+        <label>הערה (לא חובה)<textarea name="note" rows="2" placeholder="למשל: לבדוק גם חניה"></textarea></label>
+        <button class="btn primary" type="submit">📋 העתקת הבקשה</button>
+        <p id="research-status" class="muted" role="status"></p>
+      </form>
+    </details>`;
+}
+app.addEventListener('submit', async e => {
+  if (e.target.id !== 'research-form') return;
+  e.preventDefault();
+  const f = e.target, status = $('research-status');
+  const t = await loadTrip(f.dataset.trip);
+  const it = t.itemById[f.dataset.item];
+  const note = f.note.value.trim();
+  const text = `בדיקת מידע · ${t.name} (${t.id})\n- יום ${it.dayIndex + 1} · ${it.name} (${it.id})${note ? `\nהערה: ${note}` : ''}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    status.textContent = 'הועתק. עכשיו להדביק בצ\'אט עם Claude.';
+  } catch {
+    status.innerHTML = `לא הצלחתי להעתיק אוטומטית. אפשר לסמן ולהעתיק:<textarea rows="3" readonly>${esc(text)}</textarea>`;
+  }
+});
+
 function itemEditHtml(t, it) {
   const v = k => k === 'tips' ? (it.tips || []).join('\n') : (it[k] || '');
   return `
@@ -752,41 +780,6 @@ app.addEventListener('click', async e => {
   } catch (err) { alert(sheetError(err)); }
 });
 
-/* ---------- request an info check (text to paste to Claude) ---------- */
-async function viewResearch(tripId, dayNum) {
-  setHeader('בקשת בדיקת מידע', tripId ? `#/t/${tripId}${dayNum ? '/d/' + (dayNum - 1) : ''}` : '#/', 'חזרה');
-  const trips = await loadTrips();
-  const t = await loadTrip(tripId || trips[0].id);
-  app.innerHTML = `
-    <form id="research-form" class="card link-form" data-trip="${esc(t.id)}">
-      <p class="muted">בוחרים ימים, מעתיקים את הבקשה ומדביקים אותה בצ'אט עם Claude. Claude יחפש שעות, מחירים ואיך מגיעים, ויוסיף קישור למקור של כל מידע.</p>
-      ${trips.length > 1 ? `<label>טיול<select name="trip">${trips.map(x => `<option value="${esc(x.id)}" ${x.id === t.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
-      <fieldset class="nights"><legend>ימים לבדיקה</legend>
-        ${t.days.map(d => `<label class="chip"><input type="checkbox" value="${d.index + 1}" ${d.index + 1 === Number(dayNum) ? 'checked' : ''}><span>יום ${d.index + 1}</span></label>`).join('')}
-      </fieldset>
-      <label>הערה (לא חובה)<textarea name="note" rows="2" placeholder="למשל: לבדוק גם מסעדות באזור"></textarea></label>
-      <button class="btn primary" type="submit">📋 העתקת הבקשה</button>
-      <p id="research-status" class="muted" role="status"></p>
-    </form>`;
-  const form = $('research-form');
-  form.trip?.addEventListener('change', () => { location.hash = `#/research/${form.trip.value}`; });
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const days = [...form.querySelectorAll('.nights input:checked')].map(i => Number(i.value));
-    const status = $('research-status');
-    if (!days.length) { status.textContent = 'צריך לבחור לפחות יום אחד.'; return; }
-    const lines = days.map(n => `- יום ${n}: ${t.days[n - 1].title || ''} (${t.days[n - 1].region || ''})`);
-    const note = form.note.value.trim();
-    const text = `בדיקת מידע · ${t.name} (${t.id})\n${lines.join('\n')}${note ? `\nהערה: ${note}` : ''}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      status.textContent = 'הועתק. עכשיו להדביק בצ\'אט עם Claude.';
-    } catch {
-      status.innerHTML = `לא הצלחתי להעתיק אוטומטית. אפשר לסמן ולהעתיק:<textarea rows="4" readonly>${esc(text)}</textarea>`;
-    }
-  });
-}
-
 /* ---------- sign-in with the trip / edit password ---------- */
 async function viewLogin() {
   setHeader('כניסה עם סיסמה', '#/', 'חזרה לדף הראשי');
@@ -823,7 +816,6 @@ async function viewLogin() {
 }
 function updateLoginMenu() {
   const k = Sheet.key(), l = Sheet.level();
-  $('menu-research').hidden = !canEdit();
   $('menu-editor').hidden = !SHEET_URL;
   $('menu-editor-label').textContent = !k ? 'כניסה עם סיסמה' : l === 'edit' ? 'מחובר · עריכה' : 'מחובר · צפייה מלאה';
 }
@@ -837,7 +829,6 @@ const routes = [
   [/^#\/t\/([\w-]+)$/, viewDays],
   [/^#\/t\/([\w-]+)\/s\/(hotels|flights|cars)$/, viewSheetTable],
   [/^#\/login$/, viewLogin],
-  [/^#\/research(?:\/([\w-]+)(?:\/(\d+))?)?$/, viewResearch],
 ];
 async function render(keepScroll) {
   const y = window.scrollY;

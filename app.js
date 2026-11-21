@@ -1,6 +1,6 @@
 'use strict';
 // shown at the bottom of the side menu, to check which version a phone is running
-const APP_VERSION = '2026-11-21.5';
+const APP_VERSION = '2026-11-21.6';
 
 /* ---------- data source (swap here for Google Sheets later) ---------- */
 const DataSource = {
@@ -243,11 +243,12 @@ function drawTripMap(el, t) {
   const map = L.map(el, { scrollWheelZoom: false });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
   const all = [], nights = [];
+  const places = L.layerGroup(), stays = L.layerGroup();
   t.days.forEach(day => {
     const color = dayColor(day.index);
     effectiveItems(t, day).filter(it => hasLL(it) && it.kind !== 'fuel').forEach(it => {
       L.marker([it.lat, it.lng], { icon: L.divIcon({ className: 'day-pin-wrap', html: `<span class="pin day-pin" style="background:${color}">${day.index + 1}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] }) })
-        .addTo(map)
+        .addTo(places)
         .bindPopup(`<a href="#/t/${esc(t.id)}/i/${esc(it.id)}">${esc(it.name)}</a><br><a href="#/t/${esc(t.id)}/d/${day.index}">יום ${day.index + 1}${day.region ? ' · ' + esc(day.region) : ''}</a>`);
       all.push([it.lat, it.lng]);
     });
@@ -255,7 +256,7 @@ function drawTripMap(el, t) {
     if (stay) nights.push({ stay, day });
   });
   // route between the nights, in order
-  if (nights.length > 1) L.polyline(nights.map(n => [n.stay.lat, n.stay.lng]), { color: '#334155', weight: 2, opacity: .6, dashArray: '4 6' }).addTo(map);
+  if (nights.length > 1) L.polyline(nights.map(n => [n.stay.lat, n.stay.lng]), { color: '#334155', weight: 2, opacity: .6, dashArray: '4 6' }).addTo(stays);
   const seen = new Map();
   nights.forEach(({ stay, day }) => {
     const k = `${stay.lat},${stay.lng}`;
@@ -265,10 +266,19 @@ function drawTripMap(el, t) {
     const [lat, lng] = k.split(',').map(Number);
     const n = nights.find(x => x.stay.lat === lat && x.stay.lng === lng);
     L.marker([lat, lng], { icon: L.divIcon({ className: 'pin hotel', html: '🛏', iconSize: [24, 24], iconAnchor: [12, 12] }), zIndexOffset: -100 })
-      .addTo(map).bindPopup(`🛏 ${esc(n.stay.name)}<br>לילות: ${daysHere.map(d => 'יום ' + d).join(', ')}`);
+      .addTo(stays).bindPopup(`🛏 ${esc(n.stay.name)}<br>לילות: ${daysHere.map(d => 'יום ' + d).join(', ')}`);
     all.push([lat, lng]);
   });
   if (all.length) map.fitBounds(all, { padding: [20, 20] }); else map.setView([64.9, -18.6], 6);
+  // layer toggles (remembered on this device)
+  const show = { places: store.get('tripmap-places') !== '0', stays: store.get('tripmap-stays') !== '0' };
+  const layers = { places, stays };
+  const apply = () => Object.entries(layers).forEach(([k, g]) => (show[k] ? g.addTo(map) : g.remove()));
+  apply();
+  document.querySelectorAll('.map-toggles input').forEach(inp => {
+    inp.checked = show[inp.value];
+    inp.addEventListener('change', () => { show[inp.value] = inp.checked; store.set('tripmap-' + inp.value, inp.checked ? '1' : '0'); apply(); });
+  });
   currentMaps.push(map);
 }
 
@@ -335,6 +345,10 @@ async function viewDays(id) {
     ${t.days.length ? `
     <section class="trip-map-section">
       <h3>🗺️ מפת הטיול</h3>
+      <div class="map-toggles" role="group" aria-label="מה להציג במפה">
+        <label class="chip"><input type="checkbox" value="stays" checked><span>🛏 מלונות</span></label>
+        <label class="chip"><input type="checkbox" value="places" checked><span>📍 מקומות</span></label>
+      </div>
       <div id="trip-map" class="map trip-map" dir="ltr"></div>
       <div class="map-legend">${t.days.map(d => `<a href="#/t/${esc(t.id)}/d/${d.index}"><span class="dot" style="background:${dayColor(d.index)}"></span>יום ${d.index + 1}</a>`).join('')}</div>
     </section>` : ''}`;

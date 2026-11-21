@@ -3,6 +3,7 @@ const VERSION = 'v4';
 const SHELL = `shell-${VERSION}`;
 const DATA = 'data';
 const TILES = 'tiles';
+const PHOTOS = 'photos';
 const TILE_LIMIT = 3000;
 
 const SHELL_FILES = [
@@ -29,7 +30,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
-    const keep = [SHELL, DATA, TILES];
+    const keep = [SHELL, DATA, TILES, PHOTOS];
     for (const k of await caches.keys()) if (!keep.includes(k)) await caches.delete(k);
     await self.clients.claim();
   })());
@@ -42,6 +43,8 @@ self.addEventListener('fetch', event => {
 
   if (url.hostname.endsWith('tile.openstreetmap.org')) {
     event.respondWith(tileCacheFirst(req));
+  } else if (url.hostname === 'upload.wikimedia.org') {
+    event.respondWith(tileCacheFirst(req, PHOTOS, 400));
   } else if (url.origin === location.origin && url.pathname.includes('/data/')) {
     event.respondWith(networkFirst(req, DATA));
   } else if (url.origin === location.origin) {
@@ -74,15 +77,15 @@ async function networkFirst(req, cacheName, timeoutMs) {
 }
 
 
-async function tileCacheFirst(req) {
-  const cache = await caches.open(TILES);
+async function tileCacheFirst(req, name = TILES, limit = TILE_LIMIT) {
+  const cache = await caches.open(name);
   const hit = await cache.match(req);
   if (hit) return hit;
   try {
     const res = await fetch(req);
     if (res.ok || res.type === 'opaque') {
       await cache.put(req, res.clone());
-      trim(cache);
+      trim(cache, limit);
     }
     return res;
   } catch (e) {
@@ -90,7 +93,7 @@ async function tileCacheFirst(req) {
   }
 }
 
-async function trim(cache) {
+async function trim(cache, limit) {
   const keys = await cache.keys();
-  for (let i = 0; i < keys.length - TILE_LIMIT; i++) await cache.delete(keys[i]);
+  for (let i = 0; i < keys.length - limit; i++) await cache.delete(keys[i]);
 }

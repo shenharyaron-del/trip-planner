@@ -3,7 +3,7 @@
   "name": "איסלנד",
   "currency": "ISK",
   "timezone": "Atlantic/Reykjavik",
-  "updatedAt": "2026-11-20T21:15:00Z",
+  "updatedAt": "2026-11-21T01:33:00Z",
   "notes": [
     "מסלול ראשוני: עוד אין מלונות וטיסות. אזורי הלינה מתוכננים בלבד.",
     "ביוני כמעט לא מחשיך (שמש חצות). כדאי מסכות שינה.",
@@ -74,7 +74,8 @@
                   "label": "אתר רשמי",
                   "url": "https://www.bluelagoon.com/"
                 }
-              ]
+              ],
+              "wiki": "Blue Lagoon (geothermal spa)"
             }
           ]
         },
@@ -100,7 +101,8 @@
               "tips": [
                 "למגדל התצפית עולים במעלית (בתשלום)."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Hallgrímskirkja"
             }
           ]
         }
@@ -145,7 +147,8 @@
                   "label": "אתר הפארק",
                   "url": "https://www.thingvellir.is/en/"
                 }
-              ]
+              ],
+              "wiki": "Þingvellir"
             }
           ]
         },
@@ -198,7 +201,8 @@
                 "לעמוד עם הגב לרוח.",
                 "המים רותחים. לא לעבור את החבלים."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Geysir"
             },
             {
               "id": "gullfoss",
@@ -219,7 +223,8 @@
               "tips": [
                 "השביל התחתון רטוב מהרסס. כדאי מעיל גשם."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Gullfoss"
             }
           ]
         },
@@ -290,7 +295,8 @@
                       "tips": [
                         "הכניסה בתשלום."
                       ],
-                      "links": []
+                      "links": [],
+                      "wiki": "Kerið"
                     }
                   ]
                 }
@@ -334,7 +340,8 @@
                 "מאחורי המפל נרטבים לגמרי: מעיל גשם וכיסוי לטלפון.",
                 "גליופרבואי נמצא כ-10 דק' הליכה צפונה, בתוך נקיק."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Seljalandsfoss"
             },
             {
               "id": "skogafoss",
@@ -353,7 +360,8 @@
               "howToGet": null,
               "durationMinutes": 75,
               "tips": [],
-              "links": []
+              "links": [],
+              "wiki": "Skógafoss"
             }
           ]
         },
@@ -379,7 +387,8 @@
               "tips": [
                 "לא עולים על הקרחון בלי מדריך. יש סיורי הליכה על הקרחון בהזמנה."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Sólheimajökull"
             },
             {
               "id": "dyrholaey",
@@ -400,7 +409,8 @@
               "tips": [
                 "ביוני יש פאפינים על הצוקים."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Dyrhólaey"
             },
             {
               "id": "reynisfjara",
@@ -421,7 +431,8 @@
               "tips": [
                 "מסוכן: גלי 'סניקר' מפתיעים. לא להתקרב למים ולא להפנות גב לים."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Reynisfjara"
             }
           ]
         },
@@ -445,7 +456,8 @@
               "howToGet": null,
               "durationMinutes": 90,
               "tips": [],
-              "links": []
+              "links": [],
+              "wiki": "Vík í Mýrdal"
             }
           ]
         }
@@ -484,7 +496,8 @@
               "tips": [
                 "ללכת רק על השביל המסומן: הצמחייה רגישה."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Fjaðrárgljúfur"
             }
           ]
         },
@@ -513,7 +526,8 @@
                   "label": "פארק ואטנאיוקול",
                   "url": "https://www.vatnajokulsthjodgardur.is/en"
                 }
-              ]
+              ],
+              "wiki": "Svartifoss"
             }
           ]
         },
@@ -545,7 +559,8 @@
                   "label": "פארק ואטנאיוקול",
                   "url": "https://www.vatnajokulsthjodgardur.is/en"
                 }
-              ]
+              ],
+              "wiki": "Jökulsárlón"
             },
             {
               "id": "diamond-beach",
@@ -624,7 +639,8 @@
               "tips": [
                 "הכניסה דרך שטח פרטי, בתשלום."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Vestrahorn"
             }
           ]
         },
@@ -648,7 +664,8 @@
               "howToGet": null,
               "durationMinutes": 60,
               "tips": [],
-              "links": []
+              "links": [],
+              "wiki": "Djúpivogur"
             }
           ]
         },
@@ -678,7 +695,8 @@
               "tips": [
                 "קיצור דרך: כביש 939 (אוקסי) חוסך כשעה, אבל הוא חצץ ותלול. לבדוק שהוא פתוח."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Seyðisfjörður"
             }
           ]
         }
@@ -717,7 +735,8 @@
               "tips": [
                 "המים טורקיז בעיקר עד אמצע הקיץ. אחר כך הם עלולים להיות עכורים."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Stuðlagil"
             }
           ]
         },
@@ -748,7 +767,8 @@
                   "label": "פארק ואטנאיוקול",
                   "url": "https://www.vatnajokulsthjodgardur.is/en"
                 }
-              ]
+              ],
+              "wiki": "Dettifoss"
             }
           ]
         },
@@ -775,7 +795,8 @@
                 "ריח חזק של גופרית.",
                 "ללכת רק על השבילים: האדמה רותחת."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Námafjall"
             },
             {
               "id": "myvatn-baths",
@@ -843,7 +864,8 @@
                       "howToGet": null,
                       "durationMinutes": 90,
                       "tips": [],
-                      "links": []
+                      "links": [],
+                      "wiki": "Hverfjall"
                     },
                     {
                       "id": "dimmuborgir",
@@ -862,7 +884,8 @@
                       "howToGet": null,
                       "durationMinutes": 60,
                       "tips": [],
-                      "links": []
+                      "links": [],
+                      "wiki": "Dimmuborgir"
                     },
                     {
                       "id": "skutustadir",
@@ -881,7 +904,8 @@
                       "howToGet": null,
                       "durationMinutes": 45,
                       "tips": [],
-                      "links": []
+                      "links": [],
+                      "wiki": "Skútustaðagígar"
                     },
                     {
                       "id": "godafoss",
@@ -906,7 +930,8 @@
                       "tips": [
                         "בדרך לאקוריירי עוברים במנהרת ואדלהיידי, שהיא בתשלום (מקוון)."
                       ],
-                      "links": []
+                      "links": [],
+                      "wiki": "Goðafoss"
                     }
                   ]
                 },
@@ -933,7 +958,8 @@
                         "להזמין שייט מראש.",
                         "קר על המים גם ביוני: שכבות, כובע וכפפות."
                       ],
-                      "links": []
+                      "links": [],
+                      "wiki": "Húsavík"
                     },
                     {
                       "id": "godafoss-2",
@@ -958,7 +984,8 @@
                       "tips": [
                         "בדרך לאקוריירי עוברים במנהרת ואדלהיידי, שהיא בתשלום (מקוון)."
                       ],
-                      "links": []
+                      "links": [],
+                      "wiki": "Goðafoss"
                     }
                   ]
                 }
@@ -982,7 +1009,8 @@
               "howToGet": null,
               "durationMinutes": 120,
               "tips": [],
-              "links": []
+              "links": [],
+              "wiki": "Akureyri"
             }
           ]
         }
@@ -1019,7 +1047,8 @@
               "howToGet": null,
               "durationMinutes": 60,
               "tips": [],
-              "links": []
+              "links": [],
+              "wiki": "Glaumbær"
             }
           ]
         },
@@ -1071,7 +1100,8 @@
               "tips": [
                 "האור הכי יפה בערב."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Kirkjufell"
             }
           ]
         }
@@ -1110,7 +1140,8 @@
               "tips": [
                 "גם כאן גלים מסוכנים. לא להתקרב למים."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Djúpalónssandur"
             }
           ]
         },
@@ -1136,7 +1167,8 @@
               "tips": [
                 "השביל ארנרסטאפי–הלנאר כ-2.5 ק\"מ לכל כיוון."
               ],
-              "links": []
+              "links": [],
+              "wiki": "Arnarstapi"
             },
             {
               "id": "budir",
@@ -1155,7 +1187,8 @@
               "howToGet": null,
               "durationMinutes": 20,
               "tips": [],
-              "links": []
+              "links": [],
+              "wiki": "Búðir"
             }
           ]
         },
@@ -1212,7 +1245,8 @@
               "howToGet": "הליכה ממרכז העיר.",
               "durationMinutes": 120,
               "tips": [],
-              "links": []
+              "links": [],
+              "wiki": "Harpa (concert hall)"
             }
           ]
         },

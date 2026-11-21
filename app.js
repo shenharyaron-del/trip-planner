@@ -334,6 +334,7 @@ async function viewItem(id, itemId) {
   const sources = (it.sources || []).filter(l => l && l.url);
   app.innerHTML = `
     <article class="detail">
+      ${it.wiki ? '<div id="gallery" class="gallery" hidden></div>' : ''}
       <span class="kind-chip">${icon} ${esc(label)}</span>
       <h2>${esc(it.name)}</h2>
       ${it.summary ? `<p class="lead">${esc(it.summary)}</p>` : ''}
@@ -350,7 +351,7 @@ async function viewItem(id, itemId) {
         </dl>
       </section>
       ${tips.length ? `<section class="section tips"><h3>💡 טיפים</h3><ul>${tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul></section>` : ''}
-      ${links.length ? `<section class="section links"><h3>קישורים</h3><ul>${links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || l.url)}</a></li>`).join('')}</ul></section>` : ''}
+      ${placeLinksHtml(t, it, links)}
       ${sources.length || it.checkedAt ? `<section class="section links sources"><h3>📚 מקורות המידע</h3>
         ${sources.length ? `<ul>${sources.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || hostOf(l.url))}</a></li>`).join('')}</ul>` : ''}
         ${it.checkedAt ? `<p class="muted">נבדק ב-${esc(fmtDate(it.checkedAt, { day: 'numeric', month: 'long', year: 'numeric' }))}</p>` : ''}</section>` : ''}
@@ -358,6 +359,7 @@ async function viewItem(id, itemId) {
       ${canEdit() ? researchHtml(t, it) + itemEditHtml(t, it) : ''}
     </article>`;
   if (hasLL(it)) drawMap($('map'), [{ ...it, num: '•' }], null, t.id);
+  if (it.wiki) showGallery(it.wiki);
 }
 
 async function viewHotel(id, hotelId) {
@@ -499,7 +501,7 @@ const linksPath = t => t.linksFile || `data/${t.id}-links.json`;
 async function loadLinks(t) {
   if (SHEET_URL) {
     try { await Sheet.load(); } catch { return []; }
-    return Sheet.rows('links', t).map(r => ({ id: r['מזהה'], title: r['נושא'], url: r['לינק'] })).filter(l => l.url);
+    return Sheet.rows('links', t).filter(r => !r['פריט']).map(r => ({ id: r['מזהה'], title: r['נושא'], url: r['לינק'] })).filter(l => l.url);
   }
   try { return (await getJSON(linksPath(t))).links || []; } catch { return []; }
 }
@@ -549,7 +551,9 @@ app.addEventListener('submit', async e => {
   f.querySelector('button').disabled = true;
   status.textContent = 'שומר…';
   try {
-    await Sheet.call({ action: 'add', table: 'links', row: { 'טיול': t.id, 'נושא': title, 'לינק': url, 'נוסף': new Date().toISOString() } });
+    const row = { 'טיול': t.id, 'נושא': title, 'לינק': url, 'נוסף': new Date().toISOString() };
+    if (f.dataset.item) row['פריט'] = f.dataset.item;
+    await Sheet.call({ action: 'add', table: 'links', row });
     await Sheet.load(true);
     render(true);
   } catch (err) {
@@ -559,8 +563,9 @@ app.addEventListener('submit', async e => {
 });
 app.addEventListener('click', async e => {
   const btn = e.target.closest('[data-del]');
-  if (!btn || !/^#\/t\/[\w-]+\/links$/.test(location.hash)) return;
-  const title = btn.closest('.link-row').querySelector('b').textContent;
+  if (!btn || !/^#\/t\/[\w-]+\/(links|i\/[\w-]+)$/.test(location.hash)) return;
+  const row = btn.closest('.link-row, .plink');
+  const title = (row.querySelector('b') || row.querySelector('a')).textContent;
   if (!confirm(`למחוק את "${title}"?`)) return;
   btn.disabled = true;
   try {
@@ -700,6 +705,69 @@ app.addEventListener('click', async e => {
     render(true);
   } catch (err) { del.disabled = false; alert(sheetError(err)); }
 });
+
+/* ---------- place links: from the data, YouTube, and added by the editor (sheet) ---------- */
+function placeLinksHtml(t, it, dataLinks) {
+  const yt = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${it.wiki || it.name} ${t.name === 'איסלנד' ? 'Iceland' : t.name}`)}`;
+  const own = Sheet.rows('links', t).filter(r => r['פריט'] === it.id && r['לינק']);
+  const edit = canEdit();
+  const li = (url, title, del) => `<li class="plink"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(title || hostOf(url))}</a>
+      <span class="muted ltr">${esc(hostOf(url))}</span>${del ? `<button class="del-btn small" type="button" data-del="${esc(del)}" aria-label="מחיקה">🗑️</button>` : ''}</li>`;
+  return `
+    <section class="section links place-links"><h3>🔗 קישורים</h3>
+      <ul>
+        ${dataLinks.map(l => li(l.url, l.label)).join('')}
+        ${own.map(r => li(r['לינק'], r['נושא'], edit && r['מזהה'])).join('')}
+        <li class="plink"><a href="${esc(yt)}" target="_blank" rel="noopener">▶️ סרטונים ביוטיוב</a><span class="muted ltr">youtube.com</span></li>
+      </ul>
+      ${edit ? `
+      <details class="add-inline"><summary>➕ הוספת קישור</summary>
+        <form id="link-form" class="link-form" data-trip="${esc(t.id)}" data-item="${esc(it.id)}">
+          <label>נושא<input name="title" required maxlength="80" placeholder="למשל: אתר רשמי" autocomplete="off"></label>
+          <label>לינק<input name="url" required inputmode="url" dir="ltr" placeholder="https://…" autocomplete="off"></label>
+          <button class="btn primary" type="submit">הוספה</button>
+          <p id="link-status" class="muted" role="status"></p>
+        </form>
+      </details>` : ''}
+    </section>`;
+}
+
+/* ---------- photos from the place's Wikipedia article (Wikimedia Commons, with credit) ---------- */
+const SKIP_IMG = /map|logo|flag|locator|icon|diagram|coat[_ ]of|symbol|location|chart|plan\b|sign\b/i;
+async function loadPhotos(title) {
+  const key = 'photos:' + title;
+  try {
+    const c = JSON.parse(store.get(key) || 'null');
+    if (c && Date.now() - c.at < 30 * 864e5) return c.photos;
+  } catch { /* ignore */ }
+  const api = 'https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1'
+    + '&generator=images&gimlimit=40&prop=imageinfo&iiprop=url|extmetadata|mime&iiurlwidth=900&titles=' + encodeURIComponent(title);
+  const r = await fetch(api);
+  const j = await r.json();
+  const text = html => { const d = document.createElement('div'); d.innerHTML = html || ''; return d.textContent.trim(); };
+  const photos = Object.values((j.query && j.query.pages) || {})
+    .filter(pg => pg.imageinfo && pg.imageinfo[0].mime === 'image/jpeg' && !SKIP_IMG.test(pg.title))
+    .slice(0, 6)
+    .map(pg => {
+      const ii = pg.imageinfo[0], m = ii.extmetadata || {};
+      return { src: ii.thumburl || ii.url, page: ii.descriptionurl,
+        artist: text(m.Artist && m.Artist.value).slice(0, 60), license: text(m.LicenseShortName && m.LicenseShortName.value) };
+    });
+  store.set(key, JSON.stringify({ at: Date.now(), photos }));
+  return photos;
+}
+async function showGallery(title) {
+  const el = $('gallery');
+  if (!el) return;
+  let photos = [];
+  try { photos = await loadPhotos(title); } catch { return; }   // offline or blocked: no gallery
+  if (!photos.length || !document.body.contains(el)) return;
+  el.innerHTML = photos.map(p => `
+    <figure><img src="${esc(p.src)}" alt="" loading="lazy" decoding="async">
+      <figcaption><a href="${esc(p.page)}" target="_blank" rel="noopener">📷 ${esc(p.artist || 'Wikimedia Commons')}${p.license ? ' · ' + esc(p.license) : ''}</a></figcaption>
+    </figure>`).join('');
+  el.hidden = false;
+}
 
 // request an info check for this place: text the editor pastes to Claude (the app cannot reach Claude itself)
 function researchHtml(t, it) {

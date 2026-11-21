@@ -6,7 +6,7 @@
 
 const TABLES = { links: 'קישורים', hotels: 'מלונות', cars: 'רכב', flights: 'טיסות', edits: 'עריכות' };
 const HEADERS = {
-  links: ['מזהה', 'טיול', 'נושא', 'לינק', 'נוסף'],
+  links: ['מזהה', 'טיול', 'נושא', 'לינק', 'נוסף', 'פריט'], // פריט: empty = trip link, else a place id
   hotels: ['מזהה', 'טיול', 'שם', 'כתובת', 'טלפון', "צ'ק-אין", "צ'ק-אאוט", 'לילות', 'מחיר', 'ביטול עד',
            'לינק להזמנה', 'קואורדינטות', 'הערות', '🔒 מספר הזמנה'],
   cars: ['מזהה', 'טיול', 'חברה', 'איסוף', 'החזרה', 'ביטוח', 'טלפון', 'לינק', 'הערות', '🔒 מספר הזמנה'],
@@ -25,8 +25,13 @@ function setup() {
     if (sh.getLastRow() === 0) {
       sh.getRange(1, 1, 1, HEADERS[k].length).setValues([HEADERS[k]]).setFontWeight('bold');
       sh.setFrozenRows(1);
+    } else {
+      // newer versions add columns: append the missing ones at the end
+      const cur = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getDisplayValues()[0].map(h => String(h).trim());
+      const missing = HEADERS[k].filter(h => cur.indexOf(h) < 0);
+      if (missing.length) sh.getRange(1, cur.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold');
     }
-    sh.getRange(1, 1, sh.getMaxRows(), HEADERS[k].length).setNumberFormat('@'); // keep phones/dates as typed
+    sh.getRange(1, 1, sh.getMaxRows(), sh.getLastColumn()).setNumberFormat('@'); // keep phones/dates as typed
     sh.setRightToLeft(true);
   });
   const st = ss.getSheetByName(SETTINGS) || ss.insertSheet(SETTINGS);

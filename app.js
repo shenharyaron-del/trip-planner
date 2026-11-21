@@ -1,6 +1,6 @@
 'use strict';
 // shown at the bottom of the side menu, to check which version a phone is running
-const APP_VERSION = '2026-11-21.8';
+const APP_VERSION = '2026-11-21.9';
 
 /* ---------- data source (swap here for Google Sheets later) ---------- */
 const DataSource = {
@@ -369,6 +369,7 @@ async function viewDays(id) {
           <div class="muted">📍 ${val(d.region)}${changesHotel(t, d)
             ? ` · <span class="move" title="מעבר מלון">${stayIcon('🧳', isBooked(t, d))} ${esc(stayName(t, d) || 'עזיבה')}</span>`
             : stayName(t, d) ? ` · ${stayIcon('🛏', isBooked(t, d))} ${esc(stayName(t, d))}` : ''}</div>
+          ${dayNotesHtml(t, d)}
         </div>
         ${isToday ? '<span class="badge">היום</span>' : ''}
       </a>`;
@@ -413,6 +414,19 @@ function noteHtml(t, dayIdx, itemId) {
       <span class="note-status muted" aria-live="polite"></span></div>`;
   }
   return text ? `<div class="note-show">📝 ${esc(text)}</div>` : '';
+}
+// notes of a day for the day list: the day note, then notes on its places (one line each)
+function dayNotesHtml(t, day) {
+  const list = [];
+  const dn = noteText(t, day.index, '');
+  if (dn) list.push(`📝 ${esc(dn)}`);
+  Object.values(t.itemById).filter(it => it.dayIndex === day.index).forEach(it => {
+    const n = noteText(t, day.index, it.id);
+    if (n) list.push(`📍 <b>${esc(it.name)}:</b> ${esc(n)}`);
+  });
+  if (!list.length) return '';
+  const more = list.length > 3 ? `<div class="more">ועוד ${list.length - 3}</div>` : '';
+  return `<div class="day-notes">${list.slice(0, 3).map(x => `<div>${x}</div>`).join('')}${more}</div>`;
 }
 // Notes go through the outbox: shown at once, sent in order (now, or when there is signal again).
 function saveNote(el) {

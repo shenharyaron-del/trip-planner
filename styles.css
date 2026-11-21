@@ -339,3 +339,7 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="light"] { color-scheme: only light; }
 .map-toggles { display: flex; gap: 8px; margin: 0 0 8px; }
+
+.day-notes { margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: var(--note-bg); border-inline-start: 3px solid var(--note-bar); font-size: 13px; display: grid; gap: 2px; }
+.day-notes div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day-notes .more { color: var(--muted); font-size: 12px; }

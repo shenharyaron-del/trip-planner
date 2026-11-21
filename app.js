@@ -311,6 +311,7 @@ async function viewDays(id) {
     <div class="quick">
       <a class="card links-card" href="#/t/${esc(t.id)}/links"><span>🔗 קישורים</span><span class="muted">${(await loadLinks(t)).length || ''}</span></a>
       ${SHEET_URL ? Object.entries(SHEET_VIEWS).map(([k, v]) => `<a class="card links-card" href="#/t/${esc(t.id)}/s/${k}"><span>${v.icon} ${esc(v.title)}</span><span class="muted">${Sheet.rows(k, t).length || ''}</span></a>`).join('') : ''}
+      ${SHEET_URL ? `<a class="card links-card budget-card" href="#/t/${esc(t.id)}/budget"><span>💰 תקציב</span><span class="muted">‹</span></a>` : ''}
     </div>
     ${(t.notes || []).length ? `<details class="card notes"><summary>💡 טיפים לטיול</summary><ul>${t.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` : ''}
     <div class="stack">${t.days.map(d => {
@@ -1150,6 +1151,170 @@ app.addEventListener('click', async e => {
   } catch (err) { alert(sheetError(err)); }
 });
 
+/* ---------- budget: exchange rates, converter, expenses (sheet tab "הוצאות" + prices of bookings) ---------- */
+const CUR = { ISK: 'ISK', ILS: '₪', USD: '$', EUR: '€' };
+const CATS = [['לינה', '🛏'], ['טיסות', '✈️'], ['רכב', '🚗'], ['דלק', '⛽'], ['אוכל', '🍽️'], ['אטרקציות', '🎟️'],
+  ['קניות', '🛍️'], ['תחבורה וחניה', '🅿️'], ['ביטוח', '🛡️'], ['אחר', '•']];
+const catIcon = c => (CATS.find(x => x[0] === c) || CATS[CATS.length - 1])[1];
+// amounts are isolated left-to-right so they do not scramble inside Hebrew text
+const fmtMoney = (n, cur) => `<bdi dir="ltr">${new Intl.NumberFormat('he-IL', { maximumFractionDigits: cur === 'ISK' || Math.abs(n) >= 100 ? 0 : 2 }).format(n)} ${CUR[cur] || cur}</bdi>`;
+
+// ECB reference rates via frankfurter (no key, CORS); saved on the device for offline use
+async function loadRates(base) {
+  const key = 'rates:' + base;
+  let c = null;
+  try { c = JSON.parse(store.get(key) || 'null'); } catch { /* ignore */ }
+  if (c && Date.now() - c.at < 6 * 3600e3) return c;
+  const want = Object.keys(CUR).filter(x => x !== base).join(',');
+  const urls = [`https://api.frankfurter.app/latest?from=${base}&to=${want}`, `https://api.frankfurter.dev/v1/latest?base=${base}&symbols=${want}`];
+  for (const u of urls) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      const r = await fetch(u, { signal: ctrl.signal });
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (j && j.rates) {
+        const v = { at: Date.now(), date: j.date, rates: { ...j.rates, [base]: 1 } };
+        store.set(key, JSON.stringify(v));
+        return v;
+      }
+    } catch { /* try the next one */ } finally { clearTimeout(timer); }
+  }
+  return c;   // older copy, or null
+}
+const convert = (n, from, to, rates) => (rates && rates.rates[from] && rates.rates[to] ? n / rates.rates[from] * rates.rates[to] : null);
+
+// "30,000 ISK ללילה" -> { amount: 30000, cur: 'ISK', perNight: true }
+function parseMoney(text, def) {
+  const s = String(text || '');
+  const m = s.match(/(\d{1,3}(?:[,\s.]\d{3})+|\d+)(?:[.,](\d{1,2}))?(?!\d)/);
+  if (!m) return null;
+  const amount = parseFloat(m[1].replace(/[,\s.]/g, '') + (m[2] ? '.' + m[2] : ''));
+  const cur = /ISK|kr\b|קרונ/i.test(s) ? 'ISK' : /€|EUR|יורו|אירו/i.test(s) ? 'EUR' : /\$|USD|דולר/i.test(s) ? 'USD'
+    : /₪|ILS|ש"ח|ש״ח|שקל/i.test(s) ? 'ILS' : def;
+  return { amount, cur, perNight: /ללילה|לכל לילה|per night|\/\s*night|a night/i.test(s) };
+}
+function autoExpenses(t, base) {
+  const out = [];
+  Sheet.rows('hotels', t).forEach(r => {
+    const p = parseMoney(r['מחיר'], base);
+    if (!p) return;
+    const n = parseNights(r['לילות']).length || 1;
+    out.push({ desc: `${r['שם'] || 'מלון'}${p.perNight ? ` (${n} לילות)` : ''}`, cat: 'לינה', amount: p.perNight ? p.amount * n : p.amount, cur: p.cur, href: `#/t/${t.id}/s/hotels` });
+  });
+  Sheet.rows('flights', t).forEach(r => {
+    const p = parseMoney(r['מחיר'], base);
+    if (p) out.push({ desc: `טיסה ${r['מספר טיסה'] || ''} ${[r['מ-'], r['ל-']].filter(Boolean).join(' ← ')}`.trim(), cat: 'טיסות', amount: p.amount, cur: p.cur, href: `#/t/${t.id}/s/flights` });
+  });
+  Sheet.rows('cars', t).forEach(r => {
+    const p = parseMoney(r['מחיר'], base);
+    if (p) out.push({ desc: `השכרת רכב ${r['חברה'] || ''}`.trim(), cat: 'רכב', amount: p.amount, cur: p.cur, href: `#/t/${t.id}/s/cars` });
+  });
+  return out;
+}
+const manualExpenses = t => Sheet.rows('expenses', t).map(r => ({
+  id: r['מזהה'], date: r['תאריך'], desc: r['תיאור'], cat: r['קטגוריה'] || 'אחר', note: r['הערות'],
+  amount: parseFloat(String(r['סכום'] || '').replace(/[,\s]/g, '')) || 0, cur: r['מטבע'] || 'ILS',
+}));
+
+async function viewBudget(id) {
+  const t = await loadTrip(id);
+  const base = t.currency || 'EUR';
+  setHeader(`תקציב · ${t.name}`, `#/t/${t.id}`, 'חזרה לרשימת הימים');
+  const ratesP = loadRates(base);
+  if (SHEET_URL) { try { await Sheet.load(); } catch { /* offline, no copy */ } }
+  const rates = await ratesP;
+  const unlocked = !!(Sheet.data && Sheet.data.level && Sheet.data.level !== 'public');
+  const auto = unlocked ? autoExpenses(t, base) : [];
+  const manual = unlocked ? manualExpenses(t).sort((a, b) => String(b.date).localeCompare(String(a.date))) : [];
+  const toILS = e => convert(e.amount, e.cur, 'ILS', rates);
+  const all = [...auto, ...manual];
+  const totalILS = all.reduce((s, e) => s + (toILS(e) || 0), 0);
+  const unconverted = all.some(e => toILS(e) === null);
+  const byCat = CATS.map(([c, ic]) => [c, ic, all.filter(e => e.cat === c).reduce((s, e) => s + (toILS(e) || 0), 0)]).filter(x => x[2] > 0);
+  const maxCat = Math.max(1, ...byCat.map(x => x[2]));
+  const others = Object.keys(CUR).filter(c => c !== base);
+  const row = (e, auto) => `
+    <div class="card exp-row">
+      ${!auto && canEdit() && e.id ? `<button class="del-btn row-del" type="button" data-del-row="${esc(e.id)}" data-table="expenses" aria-label="מחיקה">🗑️</button>` : ''}
+      <span class="exp-ico">${catIcon(e.cat)}</span>
+      <div class="grow">
+        ${auto ? `<a class="row-title" href="${esc(e.href)}">${esc(e.desc)}</a>` : `<b class="row-title">${esc(e.desc || e.cat)}</b>`}
+        <div class="muted">${esc(e.cat)}${e.date ? ' · ' + esc(e.date) : ''}${auto ? ' · מההזמנות' : ''}${e.note ? ' · ' + esc(e.note) : ''}</div>
+      </div>
+      <div class="exp-amt"><b>${fmtMoney(e.amount, e.cur)}</b>${e.cur !== 'ILS' && toILS(e) !== null ? `<span class="muted">≈ ${fmtMoney(toILS(e), 'ILS')}</span>` : ''}</div>
+    </div>`;
+  app.innerHTML = `
+    <section class="card rates">
+      <h3>💱 שער חליפין</h3>
+      ${rates ? `
+        <div class="rate-grid">${others.map(c => `<div><span class="muted">1 ${CUR[c]}</span><b>${fmtMoney(convert(1, c, base, rates), base)}</b></div>`).join('')}</div>
+        <p class="muted small">${fmtMoney(1000, base)} = ${others.map(c => fmtMoney(convert(1000, base, c, rates), c)).join(' · ')}</p>
+        <p class="muted small">שער ייצוגי של הבנק המרכזי האירופי · ${esc(rates.date ? fmtDate(rates.date, { day: 'numeric', month: 'long', year: 'numeric' }) : '')}${Date.now() - rates.at > 6 * 3600e3 ? ' · נשמר בטלפון' : ''}</p>
+        <div class="converter">
+          <input id="conv-amt" inputmode="decimal" value="1000" aria-label="סכום">
+          <select id="conv-cur" aria-label="מטבע">${Object.keys(CUR).map(c => `<option value="${c}" ${c === base ? 'selected' : ''}>${CUR[c]}</option>`).join('')}</select>
+          <div id="conv-out" class="muted"></div>
+        </div>` : '<p class="muted">אין עדיין שער שמור. צריך חיבור לאינטרנט פעם אחת.</p>'}
+    </section>
+    ${!unlocked ? `<p class="muted lock-note">🔒 ההוצאות מוצגות רק עם סיסמה. <a href="#/login">כניסה</a></p>` : `
+    <section class="card budget-sum">
+      <div class="sum-line"><span>סה״כ</span><b>${fmtMoney(totalILS, 'ILS')}</b></div>
+      ${rates ? `<div class="muted">${fmtMoney(convert(totalILS, 'ILS', base, rates) || 0, base)} · ${fmtMoney(convert(totalILS, 'ILS', 'USD', rates) || 0, 'USD')} · ${fmtMoney(convert(totalILS, 'ILS', 'EUR', rates) || 0, 'EUR')}</div>` : ''}
+      ${unconverted ? '<p class="muted small">חלק מההוצאות לא הומרו לשקלים (אין שער שמור).</p>' : ''}
+      ${byCat.length ? `<div class="cat-bars">${byCat.map(([c, ic, v]) => `
+        <div class="cat-bar"><span>${ic} ${esc(c)}</span><i style="width:${Math.max(4, v / maxCat * 100).toFixed(0)}%"></i><b>${fmtMoney(v, 'ILS')}</b></div>`).join('')}</div>` : ''}
+    </section>
+    ${auto.length ? `<h3 class="exp-h">מההזמנות</h3><div class="stack">${auto.map(e => row(e, true)).join('')}</div>` : ''}
+    <h3 class="exp-h">הוצאות</h3>
+    <div class="stack">${manual.map(e => row(e, false)).join('') || '<p class="empty">אין עדיין הוצאות</p>'}</div>
+    ${canEdit() ? `
+    <details class="card add-box" id="add-box">
+      <summary>➕ הוספת הוצאה</summary>
+      <form id="exp-form" class="link-form" data-trip="${esc(t.id)}">
+        <label>תיאור<input name="desc" required maxlength="80" placeholder="למשל: ארוחת ערב בוויק" autocomplete="off"></label>
+        <div class="two">
+          <label>סכום<input name="amount" required inputmode="decimal" dir="ltr" autocomplete="off"></label>
+          <label>מטבע<select name="cur">${Object.keys(CUR).map(c => `<option value="${c}" ${c === (store.get('exp-cur') || base) ? 'selected' : ''}>${CUR[c]}</option>`).join('')}</select></label>
+        </div>
+        <fieldset class="nights"><legend>קטגוריה</legend>
+          ${CATS.map(([c, ic], i) => `<label class="chip"><input type="radio" name="cat" value="${esc(c)}" ${i === 4 ? 'checked' : ''}><span>${ic} ${esc(c)}</span></label>`).join('')}
+        </fieldset>
+        <label>תאריך<input name="date" type="date" value="${todayIn(t.timezone)}"></label>
+        <label>הערה (לא חובה)<input name="note" maxlength="120" autocomplete="off"></label>
+        <button class="btn primary" type="submit">הוספה</button>
+        <p id="exp-status" class="muted" role="status"></p>
+      </form>
+    </details>` : ''}`}`;
+  const conv = () => {
+    const out = $('conv-out');
+    if (!out) return;
+    const n = parseFloat(($('conv-amt').value || '').replace(/,/g, ''));
+    const from = $('conv-cur').value;
+    out.innerHTML = Number.isFinite(n) ? Object.keys(CUR).filter(c => c !== from).map(c => `<b>${fmtMoney(convert(n, from, c, rates) || 0, c)}</b>`).join(' · ') : '';
+  };
+  $('conv-amt')?.addEventListener('input', conv);
+  $('conv-cur')?.addEventListener('change', conv);
+  conv();
+}
+app.addEventListener('submit', async e => {
+  if (e.target.id !== 'exp-form') return;
+  e.preventDefault();
+  const f = e.target, status = $('exp-status');
+  const amount = parseFloat(f.amount.value.replace(/,/g, ''));
+  if (!Number.isFinite(amount) || amount <= 0) { status.textContent = 'הסכום לא נראה תקין.'; return; }
+  store.set('exp-cur', f.cur.value);
+  const row = { 'טיול': f.dataset.trip, 'תאריך': f.date.value, 'תיאור': f.desc.value.trim(), 'קטגוריה': f.cat.value,
+    'סכום': String(amount), 'מטבע': f.cur.value, 'הערות': f.note.value.trim(), 'נוסף': new Date().toISOString() };
+  f.querySelector('button[type=submit]').disabled = true;
+  try {
+    const res = await Sheet.write({ action: 'add', table: 'expenses', row });
+    if (res.error) throw res.error;
+    afterWrite(res);
+  } catch (err) { status.textContent = sheetError(err); f.querySelector('button[type=submit]').disabled = false; }
+});
+
 /* ---------- sign-in with the trip / edit password ---------- */
 async function viewLogin() {
   setHeader('כניסה עם סיסמה', '#/', 'חזרה לדף הראשי');
@@ -1202,6 +1367,7 @@ const routes = [
   [/^#\/t\/([\w-]+)$/, viewDays],
   [/^#\/t\/([\w-]+)\/s\/(hotels|flights|cars)$/, viewSheetTable],
   [/^#\/login$/, viewLogin],
+  [/^#\/t\/([\w-]+)\/budget$/, viewBudget],
 ];
 async function render(keepScroll) {
   const y = window.scrollY;

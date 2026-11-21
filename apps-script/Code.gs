@@ -4,18 +4,21 @@
  * The spreadsheet itself stays private; the app reads/writes only through this script.
  */
 
-const TABLES = { links: 'קישורים', hotels: 'מלונות', cars: 'רכב', flights: 'טיסות', edits: 'עריכות', notes: 'הערות' };
+const TABLES = { links: 'קישורים', hotels: 'מלונות', cars: 'רכב', flights: 'טיסות', edits: 'עריכות', notes: 'הערות', expenses: 'הוצאות' };
 const HEADERS = {
   links: ['מזהה', 'טיול', 'נושא', 'לינק', 'נוסף', 'פריט'], // פריט: empty = trip link, else a place id
   hotels: ['מזהה', 'טיול', 'שם', 'כתובת', 'טלפון', "צ'ק-אין", "צ'ק-אאוט", 'לילות', 'מחיר', 'ביטול עד',
            'לינק להזמנה', 'קואורדינטות', 'הערות', '🔒 מספר הזמנה'],
-  cars: ['מזהה', 'טיול', 'חברה', 'איסוף', 'החזרה', 'ביטוח', 'טלפון', 'לינק', 'הערות', '🔒 מספר הזמנה'],
-  flights: ['מזהה', 'טיול', 'תאריך', 'מספר טיסה', 'מ-', 'ל-', 'המראה', 'נחיתה', 'הערות', '🔒 קוד הזמנה'],
+  cars: ['מזהה', 'טיול', 'חברה', 'איסוף', 'החזרה', 'ביטוח', 'טלפון', 'לינק', 'הערות', '🔒 מספר הזמנה', 'מחיר'],
+  flights: ['מזהה', 'טיול', 'תאריך', 'מספר טיסה', 'מ-', 'ל-', 'המראה', 'נחיתה', 'הערות', '🔒 קוד הזמנה', 'מחיר'],
   // manual edits of itinerary places (one row per place, overrides the researched data)
   edits: ['מזהה', 'טיול', 'פריט', 'סיכום', 'תיאור', 'שעות', 'מחיר', 'איך מגיעים', 'טיפים', 'עודכן'],
   // free-text notes: per day (פריט empty) or per place
   notes: ['מזהה', 'טיול', 'יום', 'פריט', 'הערה', 'עודכן'],
+  expenses: ['מזהה', 'טיול', 'תאריך', 'תיאור', 'קטגוריה', 'סכום', 'מטבע', 'הערות', 'נוסף'],
 };
+// whole tabs shown only with a password (trip or edit)
+const PRIVATE_TABLES = ['expenses'];
 const SETTINGS = 'הגדרות';
 const PRIVATE = '🔒';
 
@@ -112,6 +115,7 @@ function readAll(showPrivate) {
     const values = sh.getDataRange().getDisplayValues();
     const headers = (values.shift() || []).map(h => String(h).trim());
     ensureIds(sh, headers, values);
+    if (!showPrivate && PRIVATE_TABLES.indexOf(k) >= 0) { out[k] = { columns: [], rows: [], hasPrivate: true }; return; }
     const keep = headers.map(h => h && (showPrivate || h.indexOf(PRIVATE) !== 0));
     out[k] = {
       columns: headers.filter((h, i) => keep[i]),
@@ -259,6 +263,7 @@ const PARSERS = {
       'המראה': times[0] || '',
       'נחיתה': times[1] || '',
       '🔒 קוד הזמנה': first(t, new RegExp(CONF + '\\s*[:：]?\\s*([A-Z0-9]{5,8})\\b', 'i')),
+      'מחיר': after(t, ['Total price', 'Total amount', 'Grand total', 'Total', 'מחיר כולל', 'סה"כ', 'סך הכל']),
     };
   },
   cars: (t, info) => ({
@@ -268,5 +273,6 @@ const PARSERS = {
     'ביטוח': after(t, ['Insurance', 'Coverage', 'ביטוח']),
     'טלפון': phoneIn(after(t, ['Phone', 'Telephone', 'Tel', 'טלפון'])),
     '🔒 מספר הזמנה': first(t, new RegExp(CONF + '\\s*[:：]?\\s*([A-Z0-9][A-Z0-9.\\-]{4,19})', 'i')),
+    'מחיר': after(t, ['Total price', 'Total amount', 'Grand total', 'Total', 'מחיר כולל', 'סה"כ', 'סך הכל']),
   }),
 };

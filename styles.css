@@ -295,3 +295,28 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 
 .booked-icon { position: relative; display: inline-block; }
 .booked-icon i { position: absolute; bottom: -3px; inset-inline-start: -5px; width: 13px; height: 13px; border-radius: 50%; background: #16a34a; color: #fff; font: 700 9px/13px system-ui, sans-serif; font-style: normal; text-align: center; box-shadow: 0 0 0 1.5px var(--surface); }
+
+/* budget */
+.quick .budget-card { grid-column: 1 / -1; }
+.rates h3, .exp-h { font-size: 16px; margin: 0 0 8px; }
+.exp-h { margin: 18px 2px 8px; }
+.rate-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.rate-grid div { background: var(--surface-2); border-radius: 10px; padding: 8px 4px; display: grid; gap: 2px; }
+.rate-grid b { font-size: 15px; }
+.small { font-size: 12px; margin: 8px 0 0; }
+.converter { display: grid; grid-template-columns: 1fr 90px; gap: 8px; margin-top: 10px; }
+.converter #conv-out { grid-column: 1 / -1; font-size: 14px; }
+.budget-sum { margin-top: 12px; }
+.sum-line { display: flex; justify-content: space-between; align-items: baseline; font-size: 18px; }
+.sum-line b { font-size: 24px; }
+.cat-bars { display: grid; gap: 6px; margin-top: 12px; }
+.cat-bar { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 8px; font-size: 13px; }
+.cat-bar i { height: 10px; border-radius: 99px; background: var(--accent); display: block; }
+.cat-bar b { font-size: 13px; }
+.exp-row { display: flex; align-items: center; gap: 10px; }
+.exp-row .row-del { position: static; order: 3; }
+.exp-row .row-title { padding: 0; }
+.exp-ico { font-size: 20px; flex: none; }
+.exp-amt { display: grid; text-align: left; flex: none; font-size: 14px; }
+.exp-amt .muted { font-size: 12px; }
+.two { display: grid; grid-template-columns: 1fr 100px; gap: 8px; }

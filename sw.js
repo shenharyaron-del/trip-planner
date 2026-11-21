@@ -46,7 +46,7 @@ self.addEventListener('fetch', event => {
   } else if (url.hostname === 'upload.wikimedia.org') {
     event.respondWith(tileCacheFirst(req, PHOTOS, 400));
   } else if (url.origin === location.origin && url.pathname.includes('/data/')) {
-    event.respondWith(networkFirst(req, DATA));
+    event.respondWith(networkFirst(req, DATA, 4000));   // weak signal: saved copy after 4s
   } else if (url.origin === location.origin) {
     event.respondWith(networkFirst(req, SHELL, 3000));
   }

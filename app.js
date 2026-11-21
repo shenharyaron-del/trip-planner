@@ -254,53 +254,28 @@ function noteHtml(t, dayIdx, itemId) {
   }
   return text ? `<div class="note-show">📝 ${esc(text)}</div>` : '';
 }
-// Notes are saved in the background: the screen updates from the local copy right away,
-// and saves of the same note run one after another so a quick edit/delete cannot race.
-const noteKey = (trip, day, item) => `${trip}|${day}|${item}`;
-const noteIds = new Map();     // note key -> sheet row id (known after a save)
-const noteQueue = new Map();   // note key -> last save promise
-function setLocalNote(trip, day, item, text) {
-  const tb = Sheet.data && Sheet.data.tables && Sheet.data.tables.notes;
-  if (!tb) return;
-  const k = noteKey(trip, day, item);
-  const i = tb.rows.findIndex(r => noteKey(r['טיול'], r['יום'], r['פריט'] || '') === k);
-  if (i >= 0 && !noteIds.has(k) && tb.rows[i]['מזהה']) noteIds.set(k, tb.rows[i]['מזהה']);
-  if (!text) { if (i >= 0) tb.rows.splice(i, 1); return; }
-  const row = { 'מזהה': (i >= 0 && tb.rows[i]['מזהה']) || '', 'טיול': trip, 'יום': day, 'פריט': item, 'הערה': text };
-  if (i >= 0) tb.rows[i] = row; else tb.rows.push(row);
-}
+// Notes go through the outbox: shown at once, sent in order (now, or when there is signal again).
 function saveNote(el) {
   const { trip, day, item } = el.dataset;
   const text = el.value.trim();
   if (text === el.dataset.orig) return Promise.resolve();
   el.dataset.orig = text;
-  const k = noteKey(trip, day, item);
-  setLocalNote(trip, day, item, text);
   const status = el.parentElement && el.parentElement.querySelector('.note-status');
   if (status) status.textContent = 'שומר…';
-  const job = (noteQueue.get(k) || Promise.resolve()).catch(() => {}).then(async () => {
-    if (!text) {
-      const id = noteIds.get(k);
-      if (id) await Sheet.call({ action: 'delete', table: 'notes', id });
-      noteIds.delete(k);
-    } else {
-      const j = await Sheet.call({ action: 'upsert', table: 'notes', match: ['טיול', 'יום', 'פריט'],
-        row: { 'טיול': trip, 'יום': day, 'פריט': item, 'הערה': text, 'עודכן': new Date().toISOString() } });
-      noteIds.set(k, j.row['מזהה']);
-    }
-  });
-  noteQueue.set(k, job);
-  job.then(() => { if (status && status.isConnected) status.textContent = 'נשמר ✓'; })
-    .catch(err => {
-      if (status && status.isConnected) status.textContent = sheetError(err);
-      else toast(`ההערה לא נשמרה: ${sheetError(err)}`);
+  const match = ['טיול', 'יום', 'פריט'];
+  const row = { 'טיול': trip, 'יום': day, 'פריט': item, 'הערה': text, 'עודכן': new Date().toISOString() };
+  return Sheet.write(text ? { action: 'upsert', table: 'notes', match, row } : { action: 'deleteMatch', table: 'notes', match, row })
+    .then(res => {
+      const msg = res.error ? sheetError(res.error) : res.queued ? 'נשמר בטלפון, יישלח כשתהיה קליטה' : 'נשמר ✓';
+      if (status && status.isConnected) status.textContent = msg;
+      else if (res.queued) toast('אין קליטה: ההערות נשמרו בטלפון ויישלחו אוטומטית.', 'info');
     });
-  return job;
 }
-function toast(msg) {
+function toast(msg, kind) {
   let el = $('toast');
   if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
   el.textContent = msg;
+  el.classList.toggle('info', kind === 'info');
   el.hidden = false;
   clearTimeout(el._t);
   el._t = setTimeout(() => { el.hidden = true; }, 6000);
@@ -491,10 +466,28 @@ async function viewHotel(id, hotelId) {
 /* ---------- Google Sheets backend (apps-script/Code.gs) ---------- */
 // Web-app URL of the deployed Apps Script (…/exec). Empty = not connected yet.
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwau09MYJrEnD-g1ty0_K5eIjtu8AVWsDpRVpAkj-yA8T6Rw6e9vkXZBxvVgVooKKS-Kw/exec';
+// Offline-friendly: reads show the copy saved on this device at once and refresh in the background;
+// writes go to an outbox (localStorage) that is sent in order whenever there is a connection.
+const sameRow = (op, r) => (op.match || []).every(m => (r[m] || '') === (op.row[m] || ''));
+function applyOp(data, op, id) {
+  const tb = data && data.tables && data.tables[op.table];
+  if (!tb) return;
+  if (op.action === 'add') tb.rows.push({ ...op.row, 'מזהה': id || op.tmpId });
+  else if (op.action === 'upsert') { tb.rows = tb.rows.filter(r => !sameRow(op, r)); tb.rows.push({ ...op.row, 'מזהה': id || op.tmpId }); }
+  else if (op.action === 'delete') tb.rows = tb.rows.filter(r => r['מזהה'] !== op.id && r['מזהה'] !== id);
+  else if (op.action === 'deleteMatch') tb.rows = tb.rows.filter(r => !sameRow(op, r));
+}
+const isNetErr = e => !navigator.onLine || e.name === 'AbortError' || e.name === 'TypeError' || e.name === 'SyntaxError';
+const Outbox = {
+  all() { try { return JSON.parse(store.get('outbox') || '[]'); } catch { return []; } },
+  save(list) { store.set('outbox', JSON.stringify(list)); updatePending(); },
+};
 const Sheet = {
   key: () => store.get('trip-key') || '',
   level: () => store.get('trip-level') || 'public',
-  data: null,
+  base: null,      // last data received from the sheet
+  data: null,      // base + changes still waiting in the outbox (what the screens show)
+  realIds: {},     // temporary id of a row added offline -> id given by the sheet
   async call(body, timeoutMs = 10000) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -510,35 +503,129 @@ const Sheet = {
       return j;
     } finally { clearTimeout(timer); }
   },
-  // latest data from the sheet; falls back to the copy saved on this device (offline)
+  setBase(j) {
+    this.base = j;
+    const d = JSON.parse(JSON.stringify(j));
+    Outbox.all().forEach(op => applyOp(d, op));
+    this.data = d;
+  },
+  cached() {
+    try { const c = JSON.parse(store.get('sheet-cache') || 'null'); return c && c.key === this.key() ? c.data : null; } catch { return null; }
+  },
+  async fetchFresh() {
+    const j = await this.call({ action: 'read' });
+    store.set('sheet-cache', JSON.stringify({ key: this.key(), data: j }));
+    if (this.key() && j.level !== this.level()) {   // password was changed in the sheet
+      if (j.level === 'public') store.set('trip-key', '');
+      store.set('trip-level', j.level === 'public' ? '' : j.level);
+      updateLoginMenu();
+    }
+    const changed = !this.base || JSON.stringify(this.base) !== JSON.stringify(j);
+    this.setBase(j);
+    return changed;
+  },
+  // update in the background; redraw only if something changed and the user is not in the middle of typing
+  refresh() {
+    if (this._refreshing || !SHEET_URL) return this._refreshing;
+    this._refreshing = this.fetchFresh()
+      .then(changed => {
+        if (!changed) return;
+        cache.trip = {};
+        const busy = notesMode || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '') || app.querySelector('details[open]');
+        if (!busy) render(true);
+      })
+      .catch(() => { /* weak or no signal: keep the saved copy */ })
+      .finally(() => { this._refreshing = null; });
+    return this._refreshing;
+  },
   async load(force) {
     if (!SHEET_URL) return null;
     if (this.data && !force) return this.data;
-    try {
-      const j = await this.call({ action: 'read' });
-      this.data = j;
-      store.set('sheet-cache', JSON.stringify({ key: this.key(), data: j }));
-      if (this.key() && j.level !== this.level()) {   // password was changed in the sheet
-        if (j.level === 'public') store.set('trip-key', '');
-        store.set('trip-level', j.level === 'public' ? '' : j.level);
-        updateLoginMenu();
-      }
-    } catch (e) {
-      let c = null;
-      try { c = JSON.parse(store.get('sheet-cache') || 'null'); } catch { /* ignore */ }
-      if (c && c.key === this.key()) this.data = c.data; else throw e;
+    if (!this.data && !force) {
+      const c = this.cached();
+      if (c) { this.setBase(c); this.refresh(); return this.data; }
     }
+    try { await this.fetchFresh(); }
+    catch (e) { const c = this.cached(); if (c) this.setBase(c); else throw e; }
     return this.data;
+  },
+  // save a change: shown at once, sent now or later. Returns { queued } or { error }.
+  async write(op) {
+    op = { ...op, tmpId: 'tmp-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6) };
+    if (op.action === 'delete' && String(op.id).startsWith('tmp-') && !this.realIds[op.id]) {
+      // the row was added offline and not sent yet: just drop that add
+      Outbox.save(Outbox.all().filter(o => o.tmpId !== op.id));
+      if (this.base) this.setBase(this.base);
+      return { queued: false };
+    }
+    Outbox.save([...Outbox.all(), op]);
+    if (this.data) applyOp(this.data, op);
+    const failed = await this.flush();
+    if (failed[op.tmpId]) return { error: failed[op.tmpId] };
+    return { queued: Outbox.all().some(o => o.tmpId === op.tmpId) };
+  },
+  flush() {
+    if (this._flushing) return this._flushing;
+    this._flushing = (async () => {
+      const failed = {};
+      let changed = false;
+      for (let op = Outbox.all()[0]; op; op = Outbox.all()[0]) {
+        let body;
+        if (op.action === 'deleteMatch') {
+          const row = ((this.base && this.base.tables[op.table] && this.base.tables[op.table].rows) || []).find(r => sameRow(op, r));
+          if (!row) { Outbox.save(Outbox.all().slice(1)); changed = true; continue; }   // nothing to delete
+          body = { action: 'delete', table: op.table, id: row['מזהה'] };
+        } else if (op.action === 'delete') {
+          body = { action: 'delete', table: op.table, id: this.realIds[op.id] || op.id };
+        } else {
+          body = { action: op.action, table: op.table, row: op.row, match: op.match };
+        }
+        try {
+          const j = await this.call(body);
+          const id = j.row && j.row['מזהה'];
+          if (id) this.realIds[op.tmpId] = id;
+          if (this.base) applyOp(this.base, op, id || body.id);
+        } catch (e) {
+          if (isNetErr(e)) break;                      // no signal: try again later
+          failed[op.tmpId] = e;                        // refused by the sheet: drop it
+          toast(`שינוי לא נשמר: ${sheetError(e)}`);
+        }
+        Outbox.save(Outbox.all().slice(1));
+        changed = true;
+      }
+      if (changed && this.base) {
+        store.set('sheet-cache', JSON.stringify({ key: this.key(), data: this.base }));
+        this.setBase(this.base);
+        cache.trip = {};
+      }
+      return failed;
+    })().finally(() => { this._flushing = null; });
+    return this._flushing;
   },
   table(name) { return (this.data && this.data.tables && this.data.tables[name]) || { columns: [], rows: [], hasPrivate: false }; },
   rows(name, t) { return this.table(name).rows.filter(r => !r['טיול'] || r['טיול'] === t.id || r['טיול'] === t.name); },
   locked(name) { return this.table(name).hasPrivate && this.data && this.data.level === 'public'; },
 };
+function updatePending() {
+  const n = Outbox.all().length, el = $('pending');
+  if (!el) return;
+  el.hidden = !n;
+  el.textContent = `⏳ ${n}`;
+  el.title = `${n} שינויים ממתינים לשליחה`;
+}
+// after a write: redraw from the local copy; tell the user if it waits for a connection
+function afterWrite(res) {
+  cache.trip = {};
+  render(true);
+  if (res.queued) toast('אין קליטה: השינוי נשמר בטלפון ויישלח אוטומטית כשתחזור.', 'info');
+}
+window.addEventListener('online', () => { Sheet.flush().then(() => Sheet.refresh()); });
+setInterval(() => { if (Outbox.all().length && navigator.onLine) Sheet.flush().then(f => { if (!Outbox.all().length) render(true); }); }, 30000);
 const canEdit = () => !!SHEET_URL && Sheet.level() === 'edit';
 const sheetError = e => e.code === 'forbidden' ? 'אין הרשאת עריכה. צריך להיכנס עם סיסמת העריכה.'
   : e.name === 'AbortError' || !navigator.onLine ? 'אין חיבור לאינטרנט (או שהוא איטי מדי). אפשר לנסות שוב כשיש קליטה.'
   : `השמירה נכשלה (${e.message}).`;
-function resetData() { Sheet.data = null; cache.trip = {}; }
+function resetData() { Sheet.data = null; Sheet.base = null; cache.trip = {}; }
 
 // "לילות" like "1,2" or "3-5" → [1,2] / [3,4,5]
 function parseNights(s) {
@@ -640,9 +727,9 @@ app.addEventListener('submit', async e => {
   try {
     const row = { 'טיול': t.id, 'נושא': title, 'לינק': url, 'נוסף': new Date().toISOString() };
     if (f.dataset.item) row['פריט'] = f.dataset.item;
-    await Sheet.call({ action: 'add', table: 'links', row });
-    await Sheet.load(true);
-    render(true);
+    const res = await Sheet.write({ action: 'add', table: 'links', row });
+    if (res.error) throw res.error;
+    afterWrite(res);
   } catch (err) {
     status.textContent = sheetError(err);
     f.querySelector('button').disabled = false;
@@ -656,9 +743,9 @@ app.addEventListener('click', async e => {
   if (!confirm(`למחוק את "${title}"?`)) return;
   btn.disabled = true;
   try {
-    await Sheet.call({ action: 'delete', table: 'links', id: btn.dataset.del });
-    await Sheet.load(true);
-    render(true);
+    const res = await Sheet.write({ action: 'delete', table: 'links', id: btn.dataset.del });
+    if (res.error) throw res.error;
+    afterWrite(res);
   } catch (err) { btn.disabled = false; alert(sheetError(err)); }
 });
 
@@ -745,10 +832,9 @@ app.addEventListener('submit', async e => {
   f.querySelector('button[type=submit]').disabled = true;
   status.textContent = 'שומר…';
   try {
-    await Sheet.call({ action: 'add', table: f.dataset.table, row });
-    resetData();
-    await Sheet.load(true);
-    render(true);
+    const res = await Sheet.write({ action: 'add', table: f.dataset.table, row });
+    if (res.error) throw res.error;
+    afterWrite(res);
   } catch (err) {
     status.textContent = sheetError(err);
     f.querySelector('button[type=submit]').disabled = false;
@@ -786,10 +872,9 @@ app.addEventListener('click', async e => {
   if (!confirm(`למחוק את "${title}"?`)) return;
   del.disabled = true;
   try {
-    await Sheet.call({ action: 'delete', table: del.dataset.table, id: del.dataset.delRow });
-    resetData();
-    await Sheet.load(true);
-    render(true);
+    const res = await Sheet.write({ action: 'delete', table: del.dataset.table, id: del.dataset.delRow });
+    if (res.error) throw res.error;
+    afterWrite(res);
   } catch (err) { del.disabled = false; alert(sheetError(err)); }
 });
 
@@ -915,10 +1000,9 @@ app.addEventListener('submit', async e => {
   f.querySelector('button[type=submit]').disabled = true;
   status.textContent = 'שומר…';
   try {
-    await Sheet.call({ action: 'upsert', table: 'edits', match: ['טיול', 'פריט'], row });
-    resetData();
-    await Sheet.load(true);
-    render(true);
+    const res = await Sheet.write({ action: 'upsert', table: 'edits', match: ['טיול', 'פריט'], row });
+    if (res.error) throw res.error;
+    afterWrite(res);
   } catch (err) { status.textContent = sheetError(err); f.querySelector('button[type=submit]').disabled = false; }
 });
 app.addEventListener('click', async e => {
@@ -928,10 +1012,9 @@ app.addEventListener('click', async e => {
   const it = t.itemById[f.dataset.item];
   if (!confirm('לבטל את העריכה הידנית ולחזור למידע המקורי?')) return;
   try {
-    await Sheet.call({ action: 'delete', table: 'edits', id: it.editRow });
-    resetData();
-    await Sheet.load(true);
-    render(true);
+    const res = await Sheet.write({ action: 'delete', table: 'edits', id: it.editRow });
+    if (res.error) throw res.error;
+    afterWrite(res);
   } catch (err) { alert(sheetError(err)); }
 });
 
@@ -954,6 +1037,9 @@ async function viewLogin() {
       <p id="login-status" class="muted" role="status"></p>
     </form>`;
   $('logout')?.addEventListener('click', () => {
+    const n = Outbox.all().length;
+    if (n && !confirm(`יש ${n} שינויים שעוד לא נשלחו. ביציאה הם יימחקו. לצאת?`)) return;
+    Outbox.save([]);
     store.set('trip-key', ''); store.set('trip-level', ''); store.set('sheet-cache', '');
     resetData(); updateLoginMenu(); render(true);
   });
@@ -1029,6 +1115,8 @@ const SHARE_URL = new URL('./', location.href).href;
 $('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`הצטרף לאפליקציית הטיולים 🧳\n${SHARE_URL}`);
 $('share-wa').addEventListener('click', () => setMenu(false));
 updateLoginMenu();
+updatePending();
+if (SHEET_URL && Outbox.all().length) Sheet.flush();
 
 /* ---------- theme + offline ---------- */
 const THEMES = [null, 'dark', 'light'];

@@ -21,7 +21,7 @@ async function loadTrip(id) {
   const meta = (await loadTrips()).find(t => t.id === id);
   if (!meta) throw new Error('הטיול לא נמצא');
   const trip = normalize({ ...meta, ...(await DataSource.trip(meta)) });
-  try { await Sheet.load(); applySheetHotels(trip); } catch { /* offline with no saved copy */ }
+  try { await Sheet.load(); applySheetHotels(trip); applySheetEdits(trip); } catch { /* offline with no saved copy */ }
   cache.trip[id] = trip;
   return trip;
 }
@@ -316,6 +316,7 @@ async function viewDay(id, dayIdx) {
         : `<div class="hotel-bar"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה</small>${day.index === t.days.length - 1 ? 'יום אחרון, אין לינה' : UNKNOWN}</div></div>`}
     <div id="map" class="map" dir="ltr"></div>
     ${route ? `<a class="btn primary" href="${esc(route)}" target="_blank" rel="noopener">🗺️ מסלול היום בגוגל מפות</a>` : ''}
+    ${canEdit() ? `<a class="btn" style="margin-top:8px" href="#/research/${esc(t.id)}/${day.index + 1}">🔎 בקשת בדיקת מידע ליום הזה</a>` : ''}
     ${legs.length ? `<div class="drive-total">🚗 סה״כ נהיגה: ~${km} ק״מ · ${fmtMin(min) || '0 דק׳'}${partial ? ' (חלק מהמקטעים לא ידועים)' : ''}</div>` : ''}
     ${blocks}
     ${last && 'driveToHotel' in last ? `<div class="drive" style="margin-top:6px">🚗 חזרה ללינה: ${esc(fmtDrive(last.driveToHotel))}</div>` : ''}`;
@@ -331,6 +332,7 @@ async function viewItem(id, itemId) {
   setHeader(it.name, `#/t/${t.id}/d/${it.dayIndex}`, `חזרה ליום ${it.dayIndex + 1}`);
   const tips = (it.tips || []).filter(Boolean);
   const links = (it.links || []).filter(l => l && l.url);
+  const sources = (it.sources || []).filter(l => l && l.url);
   app.innerHTML = `
     <article class="detail">
       <span class="kind-chip">${icon} ${esc(label)}</span>
@@ -350,6 +352,11 @@ async function viewItem(id, itemId) {
       </section>
       ${tips.length ? `<section class="section tips"><h3>💡 טיפים</h3><ul>${tips.map(x => `<li>${esc(x)}</li>`).join('')}</ul></section>` : ''}
       ${links.length ? `<section class="section links"><h3>קישורים</h3><ul>${links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || l.url)}</a></li>`).join('')}</ul></section>` : ''}
+      ${sources.length || it.checkedAt ? `<section class="section links sources"><h3>📚 מקורות המידע</h3>
+        ${sources.length ? `<ul>${sources.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || hostOf(l.url))}</a></li>`).join('')}</ul>` : ''}
+        ${it.checkedAt ? `<p class="muted">נבדק ב-${esc(fmtDate(it.checkedAt, { day: 'numeric', month: 'long', year: 'numeric' }))}</p>` : ''}</section>` : ''}
+      ${it.editRow ? `<p class="muted edited">✏️ חלק מהמידע נערך ידנית${it.editedAt ? ` (${esc(it.editedAt.slice(0, 10))})` : ''}</p>` : ''}
+      ${canEdit() ? itemEditHtml(t, it) : ''}
     </article>`;
   if (hasLL(it)) drawMap($('map'), [{ ...it, num: '•' }], null, t.id);
 }
@@ -469,6 +476,22 @@ function applySheetHotels(t) {
     t.hotels.push(h);
     t.hotelById[id] = h;
     parseNights(r['לילות']).forEach(n => { if (t.days[n - 1]) t.days[n - 1].hotelId = id; });
+  });
+}
+
+// manual edits from the "עריכות" tab override the researched data of a place
+const EDIT_FIELDS = [['summary', 'סיכום'], ['description', 'תיאור'], ['hours', 'שעות'], ['price', 'מחיר'], ['howToGet', 'איך מגיעים'], ['tips', 'טיפים']];
+function applySheetEdits(t) {
+  Sheet.rows('edits', t).forEach(r => {
+    const it = t.itemById[r['פריט']];
+    if (!it) return;
+    EDIT_FIELDS.forEach(([k, col]) => {
+      const v = (r[col] || '').trim();
+      if (!v) return;
+      it[k] = k === 'tips' ? v.split('\n').map(x => x.trim()).filter(Boolean) : v;
+    });
+    it.editRow = r['מזהה'];
+    it.editedAt = r['עודכן'] || '';
   });
 }
 
@@ -679,6 +702,91 @@ app.addEventListener('click', async e => {
   } catch (err) { del.disabled = false; alert(sheetError(err)); }
 });
 
+function itemEditHtml(t, it) {
+  const v = k => k === 'tips' ? (it.tips || []).join('\n') : (it[k] || '');
+  return `
+    <details class="card add-box">
+      <summary>✏️ עריכת המידע</summary>
+      <form id="item-form" class="link-form" data-trip="${esc(t.id)}" data-item="${esc(it.id)}">
+        ${EDIT_FIELDS.map(([k, col]) => `<label>${esc(col)}${k === 'tips' ? ' (טיפ בכל שורה)' : ''}
+          <textarea name="${k}" rows="${k === 'description' || k === 'tips' ? 4 : 2}">${esc(v(k))}</textarea></label>`).join('')}
+        <button class="btn primary" type="submit">שמירה</button>
+        ${it.editRow ? '<button class="btn" type="button" id="item-revert">ביטול העריכה הידנית</button>' : ''}
+        <p id="item-status" class="muted" role="status"></p>
+      </form>
+    </details>`;
+}
+app.addEventListener('submit', async e => {
+  if (e.target.id !== 'item-form') return;
+  e.preventDefault();
+  const f = e.target, status = $('item-status');
+  const t = await loadTrip(f.dataset.trip);
+  const it = t.itemById[f.dataset.item];
+  const row = { 'טיול': t.id, 'פריט': it.id, 'עודכן': new Date().toISOString() };
+  // save only fields that differ from what is shown now, so later research still fills the rest
+  EDIT_FIELDS.forEach(([k, col]) => {
+    const now = k === 'tips' ? (it.tips || []).join('\n') : (it[k] || '');
+    const val = f.elements[k].value.trim();
+    if (val && (val !== now || it.editRow)) row[col] = val;
+  });
+  f.querySelector('button[type=submit]').disabled = true;
+  status.textContent = 'שומר…';
+  try {
+    await Sheet.call({ action: 'upsert', table: 'edits', match: ['טיול', 'פריט'], row });
+    resetData();
+    await Sheet.load(true);
+    render(true);
+  } catch (err) { status.textContent = sheetError(err); f.querySelector('button[type=submit]').disabled = false; }
+});
+app.addEventListener('click', async e => {
+  if (!e.target.closest('#item-revert')) return;
+  const f = $('item-form');
+  const t = await loadTrip(f.dataset.trip);
+  const it = t.itemById[f.dataset.item];
+  if (!confirm('לבטל את העריכה הידנית ולחזור למידע המקורי?')) return;
+  try {
+    await Sheet.call({ action: 'delete', table: 'edits', id: it.editRow });
+    resetData();
+    await Sheet.load(true);
+    render(true);
+  } catch (err) { alert(sheetError(err)); }
+});
+
+/* ---------- request an info check (text to paste to Claude) ---------- */
+async function viewResearch(tripId, dayNum) {
+  setHeader('בקשת בדיקת מידע', tripId ? `#/t/${tripId}${dayNum ? '/d/' + (dayNum - 1) : ''}` : '#/', 'חזרה');
+  const trips = await loadTrips();
+  const t = await loadTrip(tripId || trips[0].id);
+  app.innerHTML = `
+    <form id="research-form" class="card link-form" data-trip="${esc(t.id)}">
+      <p class="muted">בוחרים ימים, מעתיקים את הבקשה ומדביקים אותה בצ'אט עם Claude. Claude יחפש שעות, מחירים ואיך מגיעים, ויוסיף קישור למקור של כל מידע.</p>
+      ${trips.length > 1 ? `<label>טיול<select name="trip">${trips.map(x => `<option value="${esc(x.id)}" ${x.id === t.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
+      <fieldset class="nights"><legend>ימים לבדיקה</legend>
+        ${t.days.map(d => `<label class="chip"><input type="checkbox" value="${d.index + 1}" ${d.index + 1 === Number(dayNum) ? 'checked' : ''}><span>יום ${d.index + 1}</span></label>`).join('')}
+      </fieldset>
+      <label>הערה (לא חובה)<textarea name="note" rows="2" placeholder="למשל: לבדוק גם מסעדות באזור"></textarea></label>
+      <button class="btn primary" type="submit">📋 העתקת הבקשה</button>
+      <p id="research-status" class="muted" role="status"></p>
+    </form>`;
+  const form = $('research-form');
+  form.trip?.addEventListener('change', () => { location.hash = `#/research/${form.trip.value}`; });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const days = [...form.querySelectorAll('.nights input:checked')].map(i => Number(i.value));
+    const status = $('research-status');
+    if (!days.length) { status.textContent = 'צריך לבחור לפחות יום אחד.'; return; }
+    const lines = days.map(n => `- יום ${n}: ${t.days[n - 1].title || ''} (${t.days[n - 1].region || ''})`);
+    const note = form.note.value.trim();
+    const text = `בדיקת מידע · ${t.name} (${t.id})\n${lines.join('\n')}${note ? `\nהערה: ${note}` : ''}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      status.textContent = 'הועתק. עכשיו להדביק בצ\'אט עם Claude.';
+    } catch {
+      status.innerHTML = `לא הצלחתי להעתיק אוטומטית. אפשר לסמן ולהעתיק:<textarea rows="4" readonly>${esc(text)}</textarea>`;
+    }
+  });
+}
+
 /* ---------- sign-in with the trip / edit password ---------- */
 async function viewLogin() {
   setHeader('כניסה עם סיסמה', '#/', 'חזרה לדף הראשי');
@@ -715,6 +823,7 @@ async function viewLogin() {
 }
 function updateLoginMenu() {
   const k = Sheet.key(), l = Sheet.level();
+  $('menu-research').hidden = !canEdit();
   $('menu-editor').hidden = !SHEET_URL;
   $('menu-editor-label').textContent = !k ? 'כניסה עם סיסמה' : l === 'edit' ? 'מחובר · עריכה' : 'מחובר · צפייה מלאה';
 }
@@ -728,6 +837,7 @@ const routes = [
   [/^#\/t\/([\w-]+)$/, viewDays],
   [/^#\/t\/([\w-]+)\/s\/(hotels|flights|cars)$/, viewSheetTable],
   [/^#\/login$/, viewLogin],
+  [/^#\/research(?:\/([\w-]+)(?:\/(\d+))?)?$/, viewResearch],
 ];
 async function render(keepScroll) {
   const y = window.scrollY;

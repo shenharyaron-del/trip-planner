@@ -4,13 +4,15 @@
  * The spreadsheet itself stays private; the app reads/writes only through this script.
  */
 
-const TABLES = { links: 'קישורים', hotels: 'מלונות', cars: 'רכב', flights: 'טיסות' };
+const TABLES = { links: 'קישורים', hotels: 'מלונות', cars: 'רכב', flights: 'טיסות', edits: 'עריכות' };
 const HEADERS = {
   links: ['מזהה', 'טיול', 'נושא', 'לינק', 'נוסף'],
   hotels: ['מזהה', 'טיול', 'שם', 'כתובת', 'טלפון', "צ'ק-אין", "צ'ק-אאוט", 'לילות', 'מחיר', 'ביטול עד',
            'לינק להזמנה', 'קואורדינטות', 'הערות', '🔒 מספר הזמנה'],
   cars: ['מזהה', 'טיול', 'חברה', 'איסוף', 'החזרה', 'ביטוח', 'טלפון', 'לינק', 'הערות', '🔒 מספר הזמנה'],
   flights: ['מזהה', 'טיול', 'תאריך', 'מספר טיסה', 'מ-', 'ל-', 'המראה', 'נחיתה', 'הערות', '🔒 קוד הזמנה'],
+  // manual edits of itinerary places (one row per place, overrides the researched data)
+  edits: ['מזהה', 'טיול', 'פריט', 'סיכום', 'תיאור', 'שעות', 'מחיר', 'איך מגיעים', 'טיפים', 'עודכן'],
 };
 const SETTINGS = 'הגדרות';
 const PRIVATE = '🔒';
@@ -66,6 +68,7 @@ function handle(req) {
   try {
     if (action === 'add') return { ok: true, row: addRow(req.table, req.row || {}) };
     if (action === 'delete') return { ok: true, deleted: deleteRow(req.table, req.id) };
+    if (action === 'upsert') return { ok: true, row: upsertRow(req.table, req.match || [], req.row || {}) };
   } finally {
     lock.releaseLock();
   }
@@ -141,6 +144,19 @@ function addRow(table, row) {
   });
   sh.appendRow(values);
   return row;
+}
+
+// replace the row whose `match` columns equal the new row's values, or add it
+function upsertRow(table, match, row) {
+  const sh = sheetFor(table);
+  const values = sh.getDataRange().getDisplayValues();
+  const headers = values[0].map(h => String(h).trim());
+  const cols = match.map(m => headers.indexOf(m));
+  if (!cols.length || cols.some(c => c < 0)) throw new Error('bad match');
+  for (let i = values.length - 1; i >= 1; i--) {
+    if (cols.every((c, k) => values[i][c] === String(row[match[k]] || ''))) sh.deleteRow(i + 1);
+  }
+  return addRow(table, row);
 }
 
 function deleteRow(table, id) {

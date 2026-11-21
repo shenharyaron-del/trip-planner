@@ -241,11 +241,60 @@ async function viewDays(id) {
   return true;
 }
 
+/* ---------- notes: per day and per place (sheet tab "הערות"); everyone sees, editors write ---------- */
+let notesMode = false;
+const noteRow = (t, dayIdx, itemId) => Sheet.rows('notes', t).find(r => r['יום'] === String(dayIdx + 1) && (r['פריט'] || '') === itemId);
+const noteText = (t, dayIdx, itemId) => ((noteRow(t, dayIdx, itemId) || {})['הערה'] || '').trim();
+function noteHtml(t, dayIdx, itemId) {
+  const r = noteRow(t, dayIdx, itemId), text = ((r || {})['הערה'] || '').trim();
+  if (notesMode && canEdit()) {
+    return `<div class="note-wrap"><textarea class="note-edit" rows="2" placeholder="${itemId ? 'הערה למקום הזה…' : 'הערה ליום הזה…'}"
+      data-trip="${esc(t.id)}" data-day="${dayIdx + 1}" data-item="${esc(itemId)}" data-id="${esc((r || {})['מזהה'] || '')}">${esc(text)}</textarea>
+      <span class="note-status muted" aria-live="polite"></span></div>`;
+  }
+  return text ? `<div class="note-show">📝 ${esc(text)}</div>` : '';
+}
+const pendingNotes = new Set();
+async function saveNote(el) {
+  const status = el.parentElement.querySelector('.note-status');
+  const text = el.value.trim();
+  status.textContent = 'שומר…';
+  const job = (async () => {
+    if (!text) {
+      if (el.dataset.id) await Sheet.call({ action: 'delete', table: 'notes', id: el.dataset.id });
+      el.dataset.id = '';
+    } else {
+      const j = await Sheet.call({ action: 'upsert', table: 'notes', match: ['טיול', 'יום', 'פריט'],
+        row: { 'טיול': el.dataset.trip, 'יום': el.dataset.day, 'פריט': el.dataset.item, 'הערה': text, 'עודכן': new Date().toISOString() } });
+      el.dataset.id = j.row['מזהה'];
+    }
+  })();
+  pendingNotes.add(job);
+  try { await job; status.textContent = 'נשמר ✓'; }
+  catch (err) { status.textContent = sheetError(err); }
+  finally { pendingNotes.delete(job); }
+}
+app.addEventListener('change', e => { if (e.target.classList.contains('note-edit')) saveNote(e.target); });
+app.addEventListener('click', async e => {
+  const btn = e.target.closest('#notes-toggle');
+  if (!btn) return;
+  btn.disabled = true;
+  if (notesMode) {   // closing: wait for saves, then show only the notes that exist
+    document.activeElement && document.activeElement.blur();
+    await new Promise(r => setTimeout(r, 0));
+    await Promise.allSettled([...pendingNotes]);
+    try { await Sheet.load(true); } catch { /* keep what we have */ }
+  }
+  notesMode = !notesMode;
+  render(true);
+});
+
 function itemCard(t, it, numById) {
   const [icon] = kind(it.kind);
   const n = numById[it.id];
   const meta = [it.time ? `🕒 ${esc(it.time)}` : null, it.durationMinutes ? `⏱ ${fmtMin(it.durationMinutes)}` : null].filter(Boolean).join(' · ');
   return `
+    ${noteHtml(t, it.dayIndex, it.id)}
     ${hasLeg(it) ? `<div class="drive">🚗 ${esc(fmtDrive(it.drive))}</div>` : '<div class="gap"></div>'}
     <a class="card item ${it.kind === 'fuel' ? 'fuel' : ''}" href="#/t/${esc(t.id)}/i/${esc(it.id)}">
       <span class="num ${n ? '' : 'plain'}">${it.kind === 'fuel' ? '⛽' : (n || icon)}</span>
@@ -317,6 +366,8 @@ async function viewDay(id, dayIdx) {
     <div id="map" class="map" dir="ltr"></div>
     ${route ? `<a class="btn primary" href="${esc(route)}" target="_blank" rel="noopener">🗺️ מסלול היום בגוגל מפות</a>` : ''}
     ${legs.length ? `<div class="drive-total">🚗 סה״כ נהיגה: ~${km} ק״מ · ${fmtMin(min) || '0 דק׳'}${partial ? ' (חלק מהמקטעים לא ידועים)' : ''}</div>` : ''}
+    ${canEdit() ? `<button class="notes-toggle ${notesMode ? 'on' : ''}" type="button" id="notes-toggle" aria-pressed="${notesMode}"><span>📝 מצב הערות</span><span class="switch"></span></button>` : ''}
+    ${notesMode || noteText(t, day.index, '') ? `<div class="note-label">הערה ליום</div>${noteHtml(t, day.index, '')}` : ''}
     ${blocks}
     ${last && 'driveToHotel' in last ? `<div class="drive" style="margin-top:6px">🚗 חזרה ללינה: ${esc(fmtDrive(last.driveToHotel))}</div>` : ''}`;
 
@@ -915,7 +966,7 @@ async function render(keepScroll) {
   if (keepScroll) window.scrollTo(0, y);
   else if (handledScroll !== true) window.scrollTo(0, 0);
 }
-window.addEventListener('hashchange', () => render(false));
+window.addEventListener('hashchange', () => { notesMode = false; render(false); });
 
 app.addEventListener('click', e => {
   const tab = e.target.closest('[data-choice]');

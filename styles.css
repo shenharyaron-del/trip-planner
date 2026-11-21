@@ -252,3 +252,18 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 .del-btn.small { width: 36px; height: 36px; font-size: 15px; }
 .add-inline { margin-top: 10px; }
 .add-inline summary { color: var(--accent); font-weight: 600; }
+
+/* notes */
+.notes-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 12px 0 4px; padding: 10px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.switch { width: 46px; height: 26px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); position: relative; flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: right .15s, left .15s; }
+.notes-toggle.on .switch { background: var(--accent); }
+.notes-toggle.on .switch::after { right: auto; left: 2px; }
+.note-label { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
+.note-wrap { margin: 8px 0 2px; }
+.note-edit { border: 1.5px dashed var(--accent); background: var(--note-bg); min-height: 44px; font-size: 15px; }
+.note-status { display: block; font-size: 12px; min-height: 0; margin-top: 2px; }
+.note-show { margin: 8px 0 2px; padding: 8px 10px; border-radius: 10px; background: var(--note-bg); border-inline-start: 4px solid var(--note-bar); font-size: 14px; white-space: pre-wrap; }
+:root { --note-bg: #fff6d6; --note-bar: #e0a800; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --note-bg: #3a3214; --note-bar: #d9a400; } }
+:root[data-theme="dark"] { --note-bg: #3a3214; --note-bar: #d9a400; }

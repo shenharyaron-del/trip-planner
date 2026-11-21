@@ -4,7 +4,7 @@
  * The spreadsheet itself stays private; the app reads/writes only through this script.
  */
 
-const TABLES = { links: 'קישורים', hotels: 'מלונות', cars: 'רכב', flights: 'טיסות', edits: 'עריכות' };
+const TABLES = { links: 'קישורים', hotels: 'מלונות', cars: 'רכב', flights: 'טיסות', edits: 'עריכות', notes: 'הערות' };
 const HEADERS = {
   links: ['מזהה', 'טיול', 'נושא', 'לינק', 'נוסף', 'פריט'], // פריט: empty = trip link, else a place id
   hotels: ['מזהה', 'טיול', 'שם', 'כתובת', 'טלפון', "צ'ק-אין", "צ'ק-אאוט", 'לילות', 'מחיר', 'ביטול עד',
@@ -13,6 +13,8 @@ const HEADERS = {
   flights: ['מזהה', 'טיול', 'תאריך', 'מספר טיסה', 'מ-', 'ל-', 'המראה', 'נחיתה', 'הערות', '🔒 קוד הזמנה'],
   // manual edits of itinerary places (one row per place, overrides the researched data)
   edits: ['מזהה', 'טיול', 'פריט', 'סיכום', 'תיאור', 'שעות', 'מחיר', 'איך מגיעים', 'טיפים', 'עודכן'],
+  // free-text notes: per day (פריט empty) or per place
+  notes: ['מזהה', 'טיול', 'יום', 'פריט', 'הערה', 'עודכן'],
 };
 const SETTINGS = 'הגדרות';
 const PRIVATE = '🔒';

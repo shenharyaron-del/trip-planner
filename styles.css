@@ -288,3 +288,6 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 .map:not(.small):not(.trip-map) { height: 300px; }
 .seg-label span { font-size: 11px; padding: 1px 6px; }
 .map-hint { font-size: 12px; text-align: center; margin: -6px 0 10px; }
+
+.move { font-weight: 600; color: var(--text); }
+.move-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; padding: 8px 12px; border-radius: 12px; background: var(--accent-soft); font-size: 14px; font-weight: 600; }

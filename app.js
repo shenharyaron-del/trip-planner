@@ -93,6 +93,10 @@ const lodging = (t, day) => {
   if (hasLL(h)) return h;
   return hasLL(day.stayArea) ? day.stayArea : null;
 };
+// name of where we sleep (booked hotel, else planned area) and whether it differs from last night
+const stayName = (t, day) => { const h = day && t.hotelById[day.hotelId]; return h ? h.name : day && day.stayArea ? day.stayArea.name : null; };
+const changesHotel = (t, day) => day.index > 0 && !!stayName(t, day) && !!stayName(t, t.days[day.index - 1])
+  && stayName(t, day) !== stayName(t, t.days[day.index - 1]);
 // "drive" key absent = no driving leg (walk, ferry, start point); null = unknown
 const hasLeg = it => 'drive' in it;
 
@@ -314,7 +318,9 @@ async function viewDays(id) {
         <div class="day-main">
           <div class="day-date">${d.date ? esc(fmtDate(d.date, { weekday: 'long', day: 'numeric', month: 'long' })) : 'תאריך: לא ידוע'}</div>
           <div class="day-title">${val(d.title)}</div>
-          <div class="muted">📍 ${val(d.region)}${hotel ? ` · 🛏 ${esc(hotel.name)}` : d.stayArea ? ` · 🛏 ${esc(d.stayArea.name)}` : ''}</div>
+          <div class="muted">📍 ${val(d.region)}${stayName(t, d) ? (changesHotel(t, d)
+            ? ` · <span class="move" title="מעבר מלון">🧳 ${esc(stayName(t, d))}</span>`
+            : ` · 🛏 ${esc(stayName(t, d))}`) : ''}</div>
         </div>
         ${isToday ? '<span class="badge">היום</span>' : ''}
       </a>`;
@@ -465,7 +471,9 @@ async function viewDay(id, dayIdx) {
       }).join('')}
     </section>`).join('');
 
+  const move = changesHotel(t, day) ? `<div class="move-bar">🧳 מעבר מלון היום · יוצאים מ${esc(stayName(t, t.days[day.index - 1]))}</div>` : '';
   app.innerHTML = `
+    ${move}
     ${hotel
       ? `<a class="hotel-bar" href="#/t/${esc(t.id)}/h/${esc(hotel.id)}"><span class="ico">🛏</span><div class="grow"><small>לינה הלילה</small><b>${esc(hotel.name)}</b></div><span class="chev">‹</span></a>`
       : day.stayArea

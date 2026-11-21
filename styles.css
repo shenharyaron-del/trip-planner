@@ -337,3 +337,4 @@ textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; borde
 .drawer { bottom: auto; max-height: 100vh; overflow-y: auto; border-end-start-radius: 16px; padding-bottom: 12px; }
 .app-version { position: static; font-size: 11px; margin: 1.5em 6px 0; }
 :root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="light"] { color-scheme: only light; }

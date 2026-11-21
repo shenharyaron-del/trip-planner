@@ -1,6 +1,6 @@
 'use strict';
 // shown at the bottom of the side menu, to check which version a phone is running
-const APP_VERSION = '2026-11-21.2';
+const APP_VERSION = '2026-11-21.3';
 
 /* ---------- data source (swap here for Google Sheets later) ---------- */
 const DataSource = {
@@ -1438,7 +1438,6 @@ $('theme').addEventListener('click', () => {
   const cur = document.documentElement.dataset.theme || null;
   const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
   if (next) document.documentElement.dataset.theme = next; else delete document.documentElement.dataset.theme;
-  document.querySelector('meta[name=color-scheme]').content = next || 'light dark';
   store.set('theme', next || '');
   toast(next === 'dark' ? '🌙 מצב כהה' : next === 'light' ? '☀️ מצב בהיר' : '◐ אוטומטי, לפי הגדרות הטלפון', 'info');
 });

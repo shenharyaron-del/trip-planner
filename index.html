@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>מתכנן טיולים</title>
-  <!-- the page has its own dark mode: tells browsers not to force-darken it -->
+  <!-- the page has its own dark mode: tells browsers not to force-darken it (keep "light dark" even when light is chosen) -->
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
@@ -31,7 +31,6 @@
       var t = localStorage.getItem('theme');
       if (t) {
         document.documentElement.dataset.theme = t;
-        document.querySelector('meta[name=color-scheme]').content = t;   // only this scheme: no forced dark in light mode
       }
     } catch (e) {}
   </script>

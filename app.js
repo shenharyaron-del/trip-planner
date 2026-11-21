@@ -549,12 +549,17 @@ app.addEventListener('click', async e => {
 });
 
 /* ---------- flights / car rental (generic rows from the sheet) ---------- */
+const nightsLabel = v => { const n = parseNights(v); return n.length ? `לילות: ${n.map(x => 'יום ' + x).join(', ')}` : ''; };
 const SHEET_VIEWS = {
-  flights: { title: 'טיסות', icon: '✈️', empty: 'אין עדיין טיסות',
+  hotels: { title: 'מלונות', icon: '🛏', addLabel: 'הוספת מלון', empty: 'אין עדיין מלונות',
+    head: r => [`🛏 ${r['שם'] || 'מלון'}`, nightsLabel(r['לילות'])], skip: ['שם'], required: 'שם',
+    subjectHint: 'למשל: Your booking is confirmed at …' },
+  flights: { title: 'טיסות', icon: '✈️', addLabel: 'הוספת טיסה', empty: 'אין עדיין טיסות',
     head: r => [`✈️ ${r['מספר טיסה'] || 'טיסה'}`, [r['מ-'], r['ל-']].filter(Boolean).join(' ← ')],
-    skip: ['מספר טיסה', 'מ-', 'ל-'] },
-  cars: { title: 'רכב', icon: '🚗', empty: 'אין עדיין פרטי השכרה',
-    head: r => [`🚗 ${r['חברה'] || 'השכרת רכב'}`, ''], skip: ['חברה'] },
+    skip: ['מספר טיסה', 'מ-', 'ל-'], required: 'מספר טיסה', subjectHint: 'למשל: Your e-ticket receipt' },
+  cars: { title: 'רכב', icon: '🚗', addLabel: 'הוספת השכרת רכב', empty: 'אין עדיין פרטי השכרה',
+    head: r => [`🚗 ${r['חברה'] || 'השכרת רכב'}`, ''], skip: ['חברה'], required: 'חברה',
+    subjectHint: 'למשל: Reservation confirmed' },
 };
 const factValue = (k, v) => /טלפון/.test(k) ? `<a class="ltr" href="tel:${esc(v.replace(/[^\d+]/g, ''))}">${esc(v)}</a>`
   : /^https?:\/\//.test(v) ? `<a href="${esc(v)}" target="_blank" rel="noopener">פתיחה ↗</a>`
@@ -568,6 +573,7 @@ async function viewSheetTable(id, name) {
   if (!SHEET_URL) { app.innerHTML = '<p class="empty">עוד לא מחובר לגיליון</p>'; return; }
   try { await Sheet.load(); } catch { app.innerHTML = '<p class="empty">לא הצלחנו לטעון. צריך חיבור לאינטרנט בפעם הראשונה.</p>'; return; }
   const tb = Sheet.table(name);
+  if (!cfg) throw new Error('המסך לא נמצא');
   const rows = Sheet.rows(name, t);
   app.innerHTML = `
     ${Sheet.locked(name) && rows.length ? lockedNote() : ''}
@@ -576,13 +582,102 @@ async function viewSheetTable(id, name) {
       const facts = tb.columns.filter(c => !['מזהה', 'טיול', ...cfg.skip].includes(c) && r[c]);
       return `
       <article class="card">
+        ${canEdit() && r['מזהה'] ? `<button class="del-btn row-del" type="button" data-del-row="${esc(r['מזהה'])}" data-table="${name}" aria-label="מחיקה">🗑️</button>` : ''}
         <b class="row-title">${esc(title)}</b>
         ${sub ? `<div class="muted">${esc(sub)}</div>` : ''}
         ${facts.length ? `<dl class="facts" style="margin-top:10px">${facts.map(c => `<dt>${esc(c)}</dt><dd>${factValue(c, r[c])}</dd>`).join('')}</dl>` : ''}
       </article>`;
     }).join('') || `<p class="empty">${cfg.empty}</p>`}</div>
-    <p class="muted" style="margin-top:14px">העריכה נעשית בגיליון Google Sheets.</p>`;
+    ${canEdit() ? addFormHtml(name, t, cfg) : `<p class="muted" style="margin-top:14px">${Sheet.key() ? 'הוספה מהאפליקציה: עם סיסמת העריכה.' : 'העריכה: בגיליון, או באפליקציה עם סיסמת העריכה.'}</p>`}`;
 }
+
+function addFormHtml(name, t, cfg) {
+  const cols = Sheet.table(name).columns.filter(c => c !== 'מזהה' && c !== 'טיול');
+  const field = c => c === 'לילות' ? `
+      <fieldset class="nights"><legend>לילות (בוחרים את הימים במסלול)</legend>
+        ${t.days.map(d => `<label class="chip"><input type="checkbox" value="${d.index + 1}"><span>יום ${d.index + 1}</span></label>`).join('')}
+      </fieldset>`
+    : `<label>${esc(c)}<input name="${esc(c)}" ${c === cfg.required ? 'required' : ''} autocomplete="off"
+        ${/טלפון/.test(c) ? 'inputmode="tel" dir="ltr"' : /לינק/.test(c) ? 'inputmode="url" dir="ltr"' : /קואורדינטות|🔒/.test(c) ? 'dir="ltr"' : ''}
+        ${c === 'קואורדינטות' ? 'placeholder="64.14, -21.94"' : ''}></label>`;
+  return `
+    <details class="card add-box" id="add-box">
+      <summary>➕ ${esc(cfg.addLabel)}</summary>
+      <div class="mail-fill">
+        <label>📧 מילוי אוטומטי מהמייל: כותרת מייל האישור
+          <input id="mail-subject" placeholder="${esc(cfg.subjectHint)}" autocomplete="off">
+        </label>
+        <button class="btn" type="button" id="mail-btn" data-table="${name}">חיפוש במייל</button>
+        <p id="mail-status" class="muted" role="status"></p>
+      </div>
+      <form id="row-form" class="link-form" data-table="${name}" data-trip="${esc(t.id)}">
+        ${cols.map(field).join('')}
+        <button class="btn primary" type="submit">שמירה</button>
+        <p id="row-status" class="muted" role="status"></p>
+      </form>
+    </details>`;
+}
+
+app.addEventListener('submit', async e => {
+  if (e.target.id !== 'row-form') return;
+  e.preventDefault();
+  const f = e.target, status = $('row-status');
+  const row = { 'טיול': f.dataset.trip };
+  f.querySelectorAll('input[name]').forEach(i => { if (i.value.trim()) row[i.name] = i.value.trim(); });
+  const nights = [...f.querySelectorAll('.nights input:checked')].map(i => i.value);
+  if (nights.length) row['לילות'] = nights.join(',');
+  if (row['לינק להזמנה']) row['לינק להזמנה'] = cleanUrl(row['לינק להזמנה']) || row['לינק להזמנה'];
+  if (row['לינק']) row['לינק'] = cleanUrl(row['לינק']) || row['לינק'];
+  f.querySelector('button[type=submit]').disabled = true;
+  status.textContent = 'שומר…';
+  try {
+    await Sheet.call({ action: 'add', table: f.dataset.table, row });
+    resetData();
+    await Sheet.load(true);
+    render(true);
+  } catch (err) {
+    status.textContent = sheetError(err);
+    f.querySelector('button[type=submit]').disabled = false;
+  }
+});
+
+app.addEventListener('click', async e => {
+  const mail = e.target.closest('#mail-btn');
+  if (mail) {
+    const subject = $('mail-subject').value.trim(), status = $('mail-status'), f = $('row-form');
+    if (subject.length < 4) { status.textContent = 'צריך להקליד את כותרת המייל (לפחות 4 תווים).'; return; }
+    mail.disabled = true;
+    status.textContent = 'מחפש במייל…';
+    try {
+      const j = await Sheet.call({ action: 'fromEmail', table: mail.dataset.table, subject }, 30000);
+      if (!j.found) { status.textContent = 'לא נמצא מייל עם הכותרת הזו. אפשר להעתיק את הכותרת בדיוק מהמייל.'; return; }
+      let n = 0;
+      Object.entries(j.fields || {}).forEach(([k, v]) => {
+        const input = [...f.querySelectorAll('input[name]')].find(i => i.name === k);
+        if (input) { input.value = v; n++; }
+      });
+      status.textContent = n
+        ? `נמצא: "${j.email.subject}" (${j.email.date}). מולאו ${n} שדות. כדאי לעבור עליהם ולהשלים לפני שמירה.`
+        : `נמצא: "${j.email.subject}", אבל לא הצלחתי לחלץ ממנו פרטים. אפשר למלא ידנית.`;
+    } catch (err) {
+      status.textContent = /permission|authoriz|הרשא/i.test(err.message)
+        ? 'לסקריפט בגיליון עוד אין הרשאה לקרוא מייל. צריך להריץ פעם אחת את authorizeGmail (ראו הוראות).'
+        : sheetError(err);
+    } finally { mail.disabled = false; }
+    return;
+  }
+  const del = e.target.closest('[data-del-row]');
+  if (!del) return;
+  const title = del.closest('.card').querySelector('.row-title').textContent;
+  if (!confirm(`למחוק את "${title}"?`)) return;
+  del.disabled = true;
+  try {
+    await Sheet.call({ action: 'delete', table: del.dataset.table, id: del.dataset.delRow });
+    resetData();
+    await Sheet.load(true);
+    render(true);
+  } catch (err) { del.disabled = false; alert(sheetError(err)); }
+});
 
 /* ---------- sign-in with the trip / edit password ---------- */
 async function viewLogin() {
@@ -631,7 +726,7 @@ const routes = [
   [/^#\/t\/([\w-]+)\/h\/([\w-]+)$/, viewHotel],
   [/^#\/t\/([\w-]+)\/links$/, viewLinks],
   [/^#\/t\/([\w-]+)$/, viewDays],
-  [/^#\/t\/([\w-]+)\/s\/(flights|cars)$/, viewSheetTable],
+  [/^#\/t\/([\w-]+)\/s\/(hotels|flights|cars)$/, viewSheetTable],
   [/^#\/login$/, viewLogin],
 ];
 async function render(keepScroll) {

@@ -60,6 +60,7 @@ function handle(req) {
   if (action === 'check') return { ok: true, level };
   if (action === 'read') return { ok: true, level, tables: readAll(level !== 'public') };
   if (level !== 'edit') return { ok: false, error: 'forbidden' };
+  if (action === 'fromEmail') return Object.assign({ ok: true }, fromEmail(req.table, req.subject));
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -160,3 +161,89 @@ function newId() {
 function json(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
+
+/* ---------- fill a row from a confirmation email (edit password only) ---------- */
+// Returns only the extracted fields, never the email body. The app shows them in the form for review.
+
+/** Run once from the editor after pasting this version, to approve reading Gmail. */
+function authorizeGmail() {
+  GmailApp.search('in:inbox', 0, 1);
+}
+
+function fromEmail(table, subject) {
+  if (!PARSERS[table]) throw new Error('unknown table');
+  subject = String(subject || '').replace(/["\\]/g, ' ').trim();
+  if (subject.length < 4) throw new Error('subject too short');
+  const threads = GmailApp.search('subject:"' + subject + '"', 0, 5);
+  let msg = null;
+  threads.forEach(t => t.getMessages().forEach(m => { if (!msg || m.getDate() > msg.getDate()) msg = m; }));
+  if (!msg) return { found: false };
+  const text = (msg.getPlainBody() || '').replace(/\r/g, '').replace(/[ \t\u00a0\u200f\u200e]+/g, ' ');
+  const info = {
+    subject: msg.getSubject(),
+    from: msg.getFrom(),
+    date: Utilities.formatDate(msg.getDate(), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+  };
+  const raw = PARSERS[table](text, info);
+  const fields = {};
+  Object.keys(raw).forEach(k => { const v = String(raw[k] || '').trim(); if (v) fields[k] = v.slice(0, 200); });
+  return { found: true, email: info, fields: fields };
+}
+
+// value after "Label:" (same line), or on the line after a label that stands alone
+function after(text, labels) {
+  for (let i = 0; i < labels.length; i++) {
+    const m = text.match(new RegExp('(?:' + labels[i] + ')\\s*[:：]\\s*([^\\n]+)', 'i'));
+    if (m && m[1].trim()) return m[1].trim();
+  }
+  for (let i = 0; i < labels.length; i++) {
+    const m = text.match(new RegExp('(?:^|\\n)\\s*(?:' + labels[i] + ')\\s*\\n\\s*([^\\n]+)', 'i'));
+    if (m && m[1].trim()) return m[1].trim();
+  }
+  return '';
+}
+function first(text, re, group) { const m = text.match(re); return m ? (m[group || 1] || '').trim() : ''; }
+function phoneIn(s) { return first(s || '', /(\+?\d[\d\s().-]{6,}\d)/); }
+function senderName(from) { return String(from || '').replace(/<[^>]*>/, '').replace(/["']/g, '').trim(); }
+const CONF = '(?:booking number|booking reference|booking code|confirmation number|confirmation code|reservation number|reservation code|record locator|PNR|מספר (?:ה)?הזמנה|מספר אישור|קוד (?:ה)?הזמנה)';
+const DATE = '(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[./]\\d{1,2}[./]\\d{2,4}|\\d{1,2} [A-Za-z\\u0590-\\u05FF]{3,9}\\.? \\d{4}|[A-Za-z]{3,9}\\.? \\d{1,2},? \\d{4})';
+
+const PARSERS = {
+  hotels: (t, info) => ({
+    'שם': first(info.subject, /(?:confirmed at|reservation at|booking at|stay at)\s+(.+?)(?:[.!]|$)/i)
+      || first(info.subject, /(?:במלון |ב-?)(.+?)\s+(?:אושרה|מאושרת|אושר)/)
+      || after(t, ['Property', 'Hotel name', 'Hotel', 'שם המלון', 'מקום האירוח']),
+    'כתובת': after(t, ['Address', 'Location', 'כתובת']),
+    'טלפון': phoneIn(after(t, ['Phone', 'Telephone', 'Tel', 'טלפון'])),
+    "צ'ק-אין": after(t, ['Check-in', 'Check in', 'Arrival', 'צ׳ק-אין', "צ'ק-אין", 'צ׳ק אין', 'הגעה']),
+    "צ'ק-אאוט": after(t, ['Check-out', 'Check out', 'Departure', 'צ׳ק-אאוט', "צ'ק-אאוט", 'צ׳ק אאוט', 'עזיבה']),
+    'מחיר': after(t, ['Total price', 'Total amount', 'Price', 'מחיר כולל', 'סה"כ', 'סך הכל', 'מחיר']),
+    'ביטול עד': after(t, ['Free cancellation until', 'Free cancellation before', 'cancel for free until', 'ביטול ללא תשלום עד', 'ביטול חינם עד'])
+      || first(t, /(?:free cancellation|cancel for free)\s+(?:until|before)\s+([^\n]+)/i)
+      || first(t, /ביטול (?:ללא תשלום|חינם)\s+עד\s+([^\n]+)/),
+    '🔒 מספר הזמנה': first(t, new RegExp(CONF + '\\s*[:：]?\\s*([A-Z0-9][A-Z0-9.\\-]{4,19})', 'i')),
+  }),
+  flights: (t, info) => {
+    const route = t.match(/\b([A-Z]{3})\s*(?:-|–|→|>|to)\s*([A-Z]{3})\b/) || [];
+    const codes = (t.match(/\(([A-Z]{3})\)/g) || []).map(c => c.slice(1, 4));
+    const times = t.match(/\b([01]?\d|2[0-3]):[0-5]\d\b/g) || [];
+    return {
+      'תאריך': first(t, new RegExp(DATE)),
+      'מספר טיסה': first(t, /(?:flight|טיסה)\s*(?:no\.?|number|מספר|#)?\s*[:：]?\s*([A-Z0-9]{2} ?\d{2,4})\b/i)
+        || first(t, /\b([A-Z]{2} ?\d{3,4})\b/),
+      'מ-': route[1] || codes[0] || '',
+      'ל-': route[2] || codes.filter(c => c !== codes[0])[0] || '',
+      'המראה': times[0] || '',
+      'נחיתה': times[1] || '',
+      '🔒 קוד הזמנה': first(t, new RegExp(CONF + '\\s*[:：]?\\s*([A-Z0-9]{5,8})\\b', 'i')),
+    };
+  },
+  cars: (t, info) => ({
+    'חברה': senderName(info.from),
+    'איסוף': after(t, ['Pick-up', 'Pickup', 'Pick up', 'איסוף']),
+    'החזרה': after(t, ['Drop-off', 'Dropoff', 'Drop off', 'Return', 'החזרה']),
+    'ביטוח': after(t, ['Insurance', 'Coverage', 'ביטוח']),
+    'טלפון': phoneIn(after(t, ['Phone', 'Telephone', 'Tel', 'טלפון'])),
+    '🔒 מספר הזמנה': first(t, new RegExp(CONF + '\\s*[:：]?\\s*([A-Z0-9][A-Z0-9.\\-]{4,19})', 'i')),
+  }),
+};

@@ -350,13 +350,18 @@ async function viewDays(id) {
 
 /* ---------- notes: per day and per place (sheet tab "הערות"); everyone sees, editors write ---------- */
 let notesMode = false;
-const noteRow = (t, dayIdx, itemId) => Sheet.rows('notes', t).find(r => r['יום'] === String(dayIdx + 1) && (r['פריט'] || '') === itemId);
+// A place note belongs to the place (any day), a day note to the day's stable id.
+// Older day notes saved with the day number are still found (and moved to the id on the next save).
+const dayKey = (t, dayIdx) => (t.days[dayIdx] && t.days[dayIdx].id) || String(dayIdx + 1);
+const noteRow = (t, dayIdx, itemId) => Sheet.rows('notes', t).find(r => itemId
+  ? r['פריט'] === itemId
+  : !r['פריט'] && (r['יום'] === dayKey(t, dayIdx) || r['יום'] === String(dayIdx + 1)));
 const noteText = (t, dayIdx, itemId) => ((noteRow(t, dayIdx, itemId) || {})['הערה'] || '').trim();
 function noteHtml(t, dayIdx, itemId) {
   const r = noteRow(t, dayIdx, itemId), text = ((r || {})['הערה'] || '').trim();
   if (notesMode && canEdit()) {
     return `<div class="note-wrap"><textarea class="note-edit" rows="2" placeholder="${itemId ? 'הערה למקום הזה…' : 'הערה ליום הזה…'}"
-      data-trip="${esc(t.id)}" data-day="${dayIdx + 1}" data-item="${esc(itemId)}" data-orig="${esc(text)}">${esc(text)}</textarea>
+      data-trip="${esc(t.id)}" data-day="${esc(dayKey(t, dayIdx))}" data-num="${dayIdx + 1}" data-item="${esc(itemId)}" data-orig="${esc(text)}">${esc(text)}</textarea>
       <span class="note-status muted" aria-live="polite"></span></div>`;
   }
   return text ? `<div class="note-show">📝 ${esc(text)}</div>` : '';
@@ -369,8 +374,12 @@ function saveNote(el) {
   el.dataset.orig = text;
   const status = el.parentElement && el.parentElement.querySelector('.note-status');
   if (status) status.textContent = 'שומר…';
-  const match = ['טיול', 'יום', 'פריט'];
+  const match = item ? ['טיול', 'פריט'] : ['טיול', 'יום', 'פריט'];
   const row = { 'טיול': trip, 'יום': day, 'פריט': item, 'הערה': text, 'עודכן': new Date().toISOString() };
+  // a day note saved under the old day number: remove that row too
+  const legacy = !item && el.dataset.num !== day
+    && Sheet.rows('notes', { id: trip, name: trip }).some(r => !r['פריט'] && r['יום'] === el.dataset.num);
+  if (legacy) Sheet.write({ action: 'deleteMatch', table: 'notes', match, row: { ...row, 'יום': el.dataset.num } });
   return Sheet.write(text ? { action: 'upsert', table: 'notes', match, row } : { action: 'deleteMatch', table: 'notes', match, row })
     .then(res => {
       const msg = res.error ? sheetError(res.error) : res.queued ? 'נשמר בטלפון, יישלח כשתהיה קליטה' : 'נשמר ✓';

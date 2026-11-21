@@ -1,6 +1,6 @@
 'use strict';
 // shown at the bottom of the side menu, to check which version a phone is running
-const APP_VERSION = '2026-11-21.4';
+const APP_VERSION = '2026-11-21.5';
 
 /* ---------- data source (swap here for Google Sheets later) ---------- */
 const DataSource = {
@@ -1428,8 +1428,24 @@ $('share-wa').href = 'https://wa.me/?text=' + encodeURIComponent(`הצטרף ל�
 $('share-wa').addEventListener('click', () => setMenu(false));
 updateLoginMenu();
 updatePending();
-$('app-version').textContent = `גרסה ${APP_VERSION} · מצב תצוגה: ${({ dark: 'כהה', light: 'בהיר' })[document.documentElement.dataset.theme] || 'אוטומטי'}`;
-$('theme').addEventListener('click', () => setTimeout(() => { $('app-version').textContent = `גרסה ${APP_VERSION} · מצב תצוגה: ${({ dark: 'כהה', light: 'בהיר' })[document.documentElement.dataset.theme] || 'אוטומטי'}`; }, 0));
+// which browser runs the app (an installed app still runs inside the browser it was installed from)
+const browserName = (() => {
+  const ua = navigator.userAgent;
+  if (/SamsungBrowser/i.test(ua)) return 'Samsung Internet';
+  if (/EdgA?\//i.test(ua)) return 'Edge';
+  if (/Firefox|FxiOS/i.test(ua)) return 'Firefox';
+  if (/OPR\/|Opera/i.test(ua)) return 'Opera';
+  if (/CriOS|Chrome\//i.test(ua)) return 'Chrome';
+  if (/Safari/i.test(ua)) return 'Safari';
+  return 'לא מזוהה';
+})();
+const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+function showVersion() {
+  const mode = ({ dark: 'כהה', light: 'בהיר' })[document.documentElement.dataset.theme] || 'אוטומטי';
+  $('app-version').textContent = `גרסה ${APP_VERSION} · מצב תצוגה: ${mode} · ${browserName}${installed ? ' (מותקנת)' : ''}`;
+}
+showVersion();
+$('theme').addEventListener('click', () => setTimeout(showVersion, 0));
 if (SHEET_URL && Outbox.all().length) Sheet.flush();
 
 /* ---------- theme + offline ---------- */

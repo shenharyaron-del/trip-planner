@@ -1,6 +1,6 @@
 'use strict';
 // shown at the bottom of the side menu, to check which version a phone is running
-const APP_VERSION = '2026-11-21.6';
+const APP_VERSION = '2026-11-21.7';
 
 /* ---------- data source (swap here for Google Sheets later) ---------- */
 const DataSource = {
@@ -235,6 +235,19 @@ function drawMap(el, points, hotel, tripId, opts = {}) {
   currentMaps.push(map);
 }
 
+// total driving of a day (legs of the chosen options, incl. the drive back to the lodging)
+function dayDrive(t, day) {
+  const items = effectiveItems(t, day);
+  const last = [...items].reverse().find(it => 'driveToHotel' in it);
+  const legs = items.filter(it => hasLeg(it) && (it.kind !== 'fuel' || it.drive)).map(it => it.drive);
+  if (last) legs.push(last.driveToHotel);
+  return {
+    km: legs.reduce((s, d) => s + (d?.km || 0), 0),
+    min: legs.reduce((s, d) => s + (d?.minutes || 0), 0),
+    partial: legs.some(d => !d || isNil(d.km) || isNil(d.minutes)),
+    count: legs.length,
+  };
+}
 // whole trip on one map: main places of every day (colored by day) and the line between the nights
 const DAY_COLORS = ['#0f766e', '#1d4ed8', '#ea580c', '#7c3aed', '#db2777', '#65a30d', '#92400e', '#0ea5e9', '#dc2626', '#475569'];
 const dayColor = i => DAY_COLORS[i % DAY_COLORS.length];
@@ -257,6 +270,20 @@ function drawTripMap(el, t) {
   });
   // route between the nights, in order
   if (nights.length > 1) L.polyline(nights.map(n => [n.stay.lat, n.stay.lng]), { color: '#334155', weight: 2, opacity: .6, dashArray: '4 6' }).addTo(stays);
+  // that day's driving, on the line from last night's lodging to tonight's (hotels-only view)
+  const stayLegs = L.layerGroup();
+  nights.forEach((n, i) => {
+    const prev = nights[i - 1];
+    if (!prev || prev.day.index !== n.day.index - 1) return;
+    if (prev.stay.lat === n.stay.lat && prev.stay.lng === n.stay.lng) return;
+    const d = dayDrive(t, n.day);
+    if (!d.count) return;
+    const time = d.min < 60 ? `${d.min} ד׳` : `${Math.floor(d.min / 60)}:${String(d.min % 60).padStart(2, '0')} ש׳`;
+    L.marker([(prev.stay.lat + n.stay.lat) / 2, (prev.stay.lng + n.stay.lng) / 2], {
+      icon: L.divIcon({ className: 'seg-label', html: `<span title="${esc(fmtDrive({ km: d.km, minutes: d.min }))}">יום ${n.day.index + 1} · ${time}</span>`, iconSize: null }),
+      interactive: false, keyboard: false,
+    }).addTo(stayLegs);
+  });
   const seen = new Map();
   nights.forEach(({ stay, day }) => {
     const k = `${stay.lat},${stay.lng}`;
@@ -273,7 +300,10 @@ function drawTripMap(el, t) {
   // layer toggles (remembered on this device)
   const show = { places: store.get('tripmap-places') !== '0', stays: store.get('tripmap-stays') !== '0' };
   const layers = { places, stays };
-  const apply = () => Object.entries(layers).forEach(([k, g]) => (show[k] ? g.addTo(map) : g.remove()));
+  const apply = () => {
+    Object.entries(layers).forEach(([k, g]) => (show[k] ? g.addTo(map) : g.remove()));
+    if (show.stays && !show.places) stayLegs.addTo(map); else stayLegs.remove();
+  };
   apply();
   document.querySelectorAll('.map-toggles input').forEach(inp => {
     inp.checked = show[inp.value];

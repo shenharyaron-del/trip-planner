@@ -3,7 +3,7 @@
   "name": "איסלנד",
   "currency": "ISK",
   "timezone": "Atlantic/Reykjavik",
-  "updatedAt": "2026-11-21T10:04:00Z",
+  "updatedAt": "2026-11-21T15:51:00Z",
   "notes": [
     "מסלול ראשוני: עוד אין מלונות וטיסות. אזורי הלינה מתוכננים בלבד.",
     "ביוני כמעט לא מחשיך (שמש חצות). כדאי מסכות שינה.",
@@ -365,6 +365,37 @@
               "tips": [],
               "links": [],
               "wiki": "Skógafoss"
+            },
+            {
+              "id": "kvernufoss",
+              "kind": "hike",
+              "name": "קברנופוס",
+              "lat": 63.529,
+              "lng": -19.4803,
+              "drive": {
+                "km": 2,
+                "minutes": 5
+              },
+              "summary": "מפל נסתר בערוץ צדדי, ליד סקוגאפוס",
+              "description": "מפל בנחל קטן בערוץ צדדי, כמה מאות מטרים מצפון-מזרח למוזיאון סקוגר. פחות מוכר ופחות עמוס מסקוגאפוס הסמוך.",
+              "hours": null,
+              "price": null,
+              "howToGet": "מחניון מוזיאון סקוגר, הליכה של כקילומטר וחצי לכל כיוון.",
+              "durationMinutes": 45,
+              "tips": [],
+              "links": [],
+              "wiki": "Kvernufoss",
+              "sources": [
+                {
+                  "label": "Wikipedia",
+                  "url": "https://en.wikipedia.org/wiki/Kvernufoss"
+                },
+                {
+                  "label": "Guide to Iceland",
+                  "url": "https://guidetoiceland.is/connect-with-locals/regina/the-beautiful-kvernufoss-waterfall-the-less-visited-neighbour-of-skogafoss-waterfall-in-south-iceland"
+                }
+              ],
+              "checkedAt": "2026-11-21"
             }
           ]
         },
@@ -539,14 +570,50 @@
           "slot": "evening",
           "items": [
             {
+              "id": "fjallsarlon",
+              "kind": "sight",
+              "name": "פיאלסרלון",
+              "lat": 64.0186,
+              "lng": -16.385,
+              "drive": {
+                "km": 45,
+                "minutes": 35
+              },
+              "summary": "לגונת קרחונים קטנה ושקטה יותר, כ-10 ק\"מ לפני יוקולסרלון",
+              "description": "לגונה בקצה קרחון פיאלסיוקול, חלק מהפארק הלאומי ואטנאיוקול. קטנה ופחות עמוסה מיוקולסרלון.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 30,
+              "tips": [],
+              "links": [
+                {
+                  "label": "פארק ואטנאיוקול",
+                  "url": "https://www.vatnajokulsthjodgardur.is/en/afangastadur-fjallsarlon"
+                }
+              ],
+              "wiki": "Fjallsárlón",
+              "sources": [
+                {
+                  "label": "פארק ואטנאיוקול",
+                  "url": "https://www.vatnajokulsthjodgardur.is/en/afangastadur-fjallsarlon"
+                },
+                {
+                  "label": "Wikipedia",
+                  "url": "https://en.wikipedia.org/wiki/Fjalls%C3%A1rl%C3%B3n"
+                }
+              ],
+              "checkedAt": "2026-11-21"
+            },
+            {
               "id": "jokulsarlon",
               "kind": "sight",
               "name": "יוקולסרלון",
               "lat": 64.0484,
               "lng": -16.1794,
               "drive": {
-                "km": 56,
-                "minutes": 45
+                "km": 11,
+                "minutes": 10
               },
               "summary": "לגונה עם קרחונים צפים שהתנתקו מהקרחון",
               "description": null,
@@ -775,6 +842,39 @@
                 }
               ],
               "wiki": "Dettifoss"
+            },
+            {
+              "id": "asbyrgi",
+              "kind": "hike",
+              "name": "אסבירגי",
+              "lat": 66.0285,
+              "lng": -16.4871,
+              "drive": {
+                "km": 35,
+                "minutes": 40
+              },
+              "summary": "קניון בצורת פרסה, עם יער ואגם קטן בקצהו",
+              "description": "קניון רחב בצורת פרסה, בצפון הפארק הלאומי ואטנאיוקול (אזור יוקולסרגליופור). שבילים קצרים מהחניון עד האגם שבקצה הקניון.",
+              "hours": null,
+              "price": null,
+              "howToGet": "מדטיפוס צפונה בכביש 862 (סלול).",
+              "durationMinutes": 60,
+              "tips": [
+                "מוסיף ליום בערך שעה ורבע של נהיגה."
+              ],
+              "links": [],
+              "wiki": "Ásbyrgi",
+              "sources": [
+                {
+                  "label": "פארק ואטנאיוקול",
+                  "url": "https://vatnajokulsthjodgardur.is/en/jokulsargljufur"
+                },
+                {
+                  "label": "Frommer's",
+                  "url": "https://www.frommers.com/destinations/jokulsargljufur-national-park/planning-a-trip"
+                }
+              ],
+              "checkedAt": "2026-11-21"
             }
           ]
         },
@@ -788,8 +888,8 @@
               "lat": 65.6411,
               "lng": -16.8086,
               "drive": {
-                "km": 35,
-                "minutes": 35
+                "km": 75,
+                "minutes": 75
               },
               "summary": "שדה גופרית מבעבע, בוץ רותח וארובות קיטור",
               "description": null,
@@ -1064,52 +1164,121 @@
           "slot": "noon",
           "items": [
             {
-              "id": "drive-west",
-              "kind": "other",
-              "name": "נסיעה מערבה",
-              "lat": null,
-              "lng": null,
-              "summary": "הקטע הארוך של היום. כדאי לעצור לאוכל ולתדלק בדרך",
-              "description": null,
-              "hours": null,
-              "price": null,
-              "howToGet": null,
-              "durationMinutes": null,
-              "tips": [
-                "עקיפה אפשרית: סלע הוויטסרקור בחצי האי ואטנס (כביש חצץ, מוסיף כשעתיים)."
-              ],
-              "links": []
-            }
-          ]
-        },
-        {
-          "slot": "evening",
-          "items": [
-            {
-              "id": "kirkjufell",
-              "kind": "sight",
-              "name": "קירקיופל",
-              "lat": 64.942,
-              "lng": -23.307,
-              "drive": {
-                "km": 290,
-                "minutes": 230
-              },
-              "driveToHotel": {
-                "km": 3,
-                "minutes": 5
-              },
-              "summary": "ההר המצולם באיסלנד, עם מפל קטן לידו",
-              "description": null,
-              "hours": null,
-              "price": null,
-              "howToGet": null,
-              "durationMinutes": 45,
-              "tips": [
-                "האור הכי יפה בערב."
-              ],
-              "links": [],
-              "wiki": "Kirkjufell"
+              "kind": "choice",
+              "options": [
+                {
+                  "label": "🚗 ישר",
+                  "items": [
+                    {
+                      "id": "drive-west",
+                      "kind": "other",
+                      "name": "נסיעה מערבה",
+                      "lat": null,
+                      "lng": null,
+                      "summary": "הקטע הארוך של היום. כדאי לעצור לאוכל ולתדלק בדרך",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": null,
+                      "tips": [
+                        "עקיפה אפשרית: סלע הוויטסרקור בחצי האי ואטנס (כביש חצץ, מוסיף כשעתיים)."
+                      ],
+                      "links": []
+                    },
+                    {
+                      "id": "kirkjufell",
+                      "kind": "sight",
+                      "name": "קירקיופל",
+                      "lat": 64.942,
+                      "lng": -23.307,
+                      "drive": {
+                        "km": 290,
+                        "minutes": 230
+                      },
+                      "driveToHotel": {
+                        "km": 3,
+                        "minutes": 5
+                      },
+                      "summary": "ההר המצולם באיסלנד, עם מפל קטן לידו",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 45,
+                      "tips": [
+                        "האור הכי יפה בערב."
+                      ],
+                      "links": [],
+                      "wiki": "Kirkjufell"
+                    }
+                  ]
+                },
+                {
+                  "label": "💦 דרך הראונפוסאר",
+                  "items": [
+                    {
+                      "id": "hraunfossar",
+                      "kind": "sight",
+                      "name": "הראונפוסאר ובארנפוס",
+                      "lat": 64.7027,
+                      "lng": -20.9776,
+                      "drive": {
+                        "km": 190,
+                        "minutes": 150
+                      },
+                      "summary": "מפלים שיוצאים מתוך שדה לבה",
+                      "description": "שורה של מפלים קטנים שזורמים מתוך שדה לבה לנהר הוויטאו, ולידם מפל בארנפוס.",
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 45,
+                      "tips": [
+                        "מוסיף ליום בערך שעה של נהיגה. כ-45 דק' מבורגרנס."
+                      ],
+                      "links": [],
+                      "wiki": "Hraunfossar",
+                      "sources": [
+                        {
+                          "label": "Umhverfisstofnun",
+                          "url": "https://ust.is/english/visiting-iceland/protected-areas/west/hraunfossar-borgarbyggd"
+                        },
+                        {
+                          "label": "Rome2Rio",
+                          "url": "https://www.rome2rio.com/s/Borgarnes/Hraunfossar"
+                        }
+                      ],
+                      "checkedAt": "2026-11-21"
+                    },
+                    {
+                      "id": "kirkjufell-via",
+                      "kind": "sight",
+                      "name": "קירקיופל",
+                      "lat": 64.942,
+                      "lng": -23.307,
+                      "drive": {
+                        "km": 170,
+                        "minutes": 140
+                      },
+                      "driveToHotel": {
+                        "km": 3,
+                        "minutes": 5
+                      },
+                      "summary": "ההר המצולם באיסלנד, עם מפל קטן לידו",
+                      "description": null,
+                      "hours": null,
+                      "price": null,
+                      "howToGet": null,
+                      "durationMinutes": 45,
+                      "tips": [
+                        "האור הכי יפה בערב."
+                      ],
+                      "links": [],
+                      "wiki": "Kirkjufell"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }
@@ -1131,14 +1300,44 @@
           "slot": "morning",
           "items": [
             {
+              "id": "saxholl",
+              "kind": "hike",
+              "name": "מכתש סקסהול",
+              "lat": 64.8517,
+              "lng": -23.9255,
+              "drive": {
+                "km": 50,
+                "minutes": 45
+              },
+              "summary": "מכתש קטן עם מדרגות לשפה ותצפית על שדות הלבה",
+              "description": "מכתש געשי בפארק הלאומי סנייפלסיוקול, בקצה המערבי של חצי האי, ליד כביש 574. מדרגות מתכת עולות עד לשפה.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 30,
+              "tips": [],
+              "links": [],
+              "sources": [
+                {
+                  "label": "Lonely Planet",
+                  "url": "https://www.lonelyplanet.com/iceland/the-west/snaefellsnes/attractions/saxholl-crater/a/poi-sig/1545793/1325509"
+                },
+                {
+                  "label": "Guide to Iceland",
+                  "url": "https://guidetoiceland.is/zaplanuj-trase/saxholl"
+                }
+              ],
+              "checkedAt": "2026-11-21"
+            },
+            {
               "id": "djupalonssandur",
               "kind": "sight",
               "name": "דיופאלונסנדור",
               "lat": 64.753,
               "lng": -23.896,
               "drive": {
-                "km": 60,
-                "minutes": 55
+                "km": 10,
+                "minutes": 12
               },
               "summary": "חוף חלוקי לבה שחורים ושרידי ספינה טרופה",
               "description": null,
@@ -1151,6 +1350,25 @@
               ],
               "links": [],
               "wiki": "Djúpalónssandur"
+            },
+            {
+              "id": "londrangar",
+              "kind": "sight",
+              "name": "לונדראנגר",
+              "lat": 64.735,
+              "lng": -23.7745,
+              "drive": {
+                "km": 8,
+                "minutes": 10
+              },
+              "summary": "שני עמודי בזלת גבוהים בים",
+              "description": "שני צוקי סלע שנשחקו על ידי הים, מהסמלים הבולטים של הפארק הלאומי סנייפלסיוקול.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 30,
+              "tips": [],
+              "links": []
             }
           ]
         },
@@ -1164,8 +1382,8 @@
               "lat": 64.767,
               "lng": -23.623,
               "drive": {
-                "km": 20,
-                "minutes": 25
+                "km": 12,
+                "minutes": 15
               },
               "summary": "צוקי בזלת וקשתות סלע. שביל חוף לכפר הלנאר",
               "description": null,
@@ -1180,14 +1398,35 @@
               "wiki": "Arnarstapi"
             },
             {
+              "id": "raudfeldsgja",
+              "kind": "hike",
+              "name": "ראודפלדסגיאו",
+              "lat": 64.8032,
+              "lng": -23.629,
+              "drive": {
+                "km": 4,
+                "minutes": 5
+              },
+              "summary": "נקיק צר בתוך ההר, ממש מעל ארנרסטאפי",
+              "description": "נקיק עמוק וצר בצלע ההר. שביל קצר יוצא מכביש 574, צפונית לארנרסטאפי.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 30,
+              "tips": [
+                "בתוך הנקיק רטוב וחלקלק. נעליים טובות."
+              ],
+              "links": []
+            },
+            {
               "id": "budir",
               "kind": "sight",
               "name": "הכנסייה השחורה בבודיר",
               "lat": 64.8217,
               "lng": -23.3843,
               "drive": {
-                "km": 18,
-                "minutes": 20
+                "km": 15,
+                "minutes": 15
               },
               "summary": "כנסייה שחורה ובודדה בשדה לבה",
               "description": null,

@@ -1,6 +1,6 @@
 'use strict';
 // shown at the bottom of the side menu, to check which version a phone is running
-const APP_VERSION = '2026-11-21.7';
+const APP_VERSION = '2026-11-21.8';
 
 /* ---------- data source (swap here for Google Sheets later) ---------- */
 const DataSource = {
@@ -270,17 +270,18 @@ function drawTripMap(el, t) {
   });
   // route between the nights, in order
   if (nights.length > 1) L.polyline(nights.map(n => [n.stay.lat, n.stay.lng]), { color: '#334155', weight: 2, opacity: .6, dashArray: '4 6' }).addTo(stays);
-  // that day's driving, on the line from last night's lodging to tonight's (hotels-only view)
+  // direct drive from last night's lodging to tonight's (day.transfer), shown in the hotels-only view
   const stayLegs = L.layerGroup();
   nights.forEach((n, i) => {
     const prev = nights[i - 1];
     if (!prev || prev.day.index !== n.day.index - 1) return;
     if (prev.stay.lat === n.stay.lat && prev.stay.lng === n.stay.lng) return;
-    const d = dayDrive(t, n.day);
-    if (!d.count) return;
-    const time = d.min < 60 ? `${d.min} ד׳` : `${Math.floor(d.min / 60)}:${String(d.min % 60).padStart(2, '0')} ש׳`;
+    const d = n.day.transfer;
+    if (!d || isNil(d.minutes)) return;
+    const m = d.minutes;
+    const time = m < 60 ? `${m} ד׳` : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} ש׳`;
     L.marker([(prev.stay.lat + n.stay.lat) / 2, (prev.stay.lng + n.stay.lng) / 2], {
-      icon: L.divIcon({ className: 'seg-label', html: `<span title="${esc(fmtDrive({ km: d.km, minutes: d.min }))}">יום ${n.day.index + 1} · ${time}</span>`, iconSize: null }),
+      icon: L.divIcon({ className: 'seg-label', html: `<span title="נסיעה ישירה ${esc(fmtDrive(d))}">יום ${n.day.index + 1} · ${time}${isNil(d.km) ? '' : ` · ${d.km} ק״מ`}</span>`, iconSize: null }),
       interactive: false, keyboard: false,
     }).addTo(stayLegs);
   });

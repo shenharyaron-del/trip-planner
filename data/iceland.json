@@ -3,7 +3,7 @@
   "name": "איסלנד",
   "currency": "ISK",
   "timezone": "Atlantic/Reykjavik",
-  "updatedAt": "2026-11-21T15:51:00Z",
+  "updatedAt": "2026-11-21T15:58:00Z",
   "notes": [
     "מסלול ראשוני: עוד אין מלונות וטיסות. אזורי הלינה מתוכננים בלבד.",
     "ביוני כמעט לא מחשיך (שמש חצות). כדאי מסכות שינה.",
@@ -306,7 +306,11 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 95,
+        "minutes": 75
+      }
     },
     {
       "id": "south-coast",
@@ -495,7 +499,11 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 85,
+        "minutes": 60
+      }
     },
     {
       "id": "vatnajokull",
@@ -658,7 +666,11 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 270,
+        "minutes": 200
+      }
     },
     {
       "id": "east-fjords",
@@ -772,7 +784,11 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 255,
+        "minutes": 210
+      }
     },
     {
       "id": "north-east",
@@ -931,7 +947,11 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 165,
+        "minutes": 120
+      }
     },
     {
       "id": "myvatn-akureyri",
@@ -1121,18 +1141,22 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 95,
+        "minutes": 75
+      }
     },
     {
       "id": "north-to-west",
       "date": null,
-      "region": "הצפון ← סנייפלסנס",
-      "title": "חוות אדמה, נסיעה מערבה וקירקיופל",
+      "region": "הצפון-מערב",
+      "title": "חוות אדמה ועיירת כלבי הים",
       "hotelId": null,
       "stayArea": {
-        "name": "גרונדרפיורדור",
-        "lat": 64.9244,
-        "lng": -23.258
+        "name": "הוואמסטנגי",
+        "lat": 65.3963,
+        "lng": -20.942
       },
       "blocks": [
         {
@@ -1161,7 +1185,51 @@
           ]
         },
         {
-          "slot": "noon",
+          "slot": "evening",
+          "items": [
+            {
+              "id": "hvammstangi",
+              "kind": "town",
+              "name": "הוואמסטנגי",
+              "lat": 65.3963,
+              "lng": -20.942,
+              "drive": {
+                "km": 120,
+                "minutes": 85
+              },
+              "summary": "עיירת דייגים קטנה עם מרכז כלבי הים של איסלנד",
+              "description": "עיירה קטנה על חוף מפרץ, מעט מחוץ לכביש 1. ממנה יוצאים לחצי האי ואטנס, שבו אפשר לראות כלבי ים.",
+              "hours": null,
+              "price": null,
+              "howToGet": null,
+              "durationMinutes": 60,
+              "tips": [
+                "אפשרות: חצי האי ואטנס, כלבי ים והסלע הוויטסרקור (כביש חצץ, מוסיף כמה שעות)."
+              ],
+              "links": []
+            }
+          ]
+        }
+      ],
+      "transfer": {
+        "km": 205,
+        "minutes": 150
+      }
+    },
+    {
+      "id": "to-snaefellsnes",
+      "date": null,
+      "region": "מערב ← סנייפלסנס",
+      "title": "מפלי הלבה וקירקיופל",
+      "hotelId": null,
+      "stayArea": {
+        "name": "גרונדרפיורדור",
+        "lat": 64.9244,
+        "lng": -23.258
+      },
+      "blocks": [
+        {
+          "slot": "day",
           "items": [
             {
               "kind": "choice",
@@ -1172,18 +1240,16 @@
                     {
                       "id": "drive-west",
                       "kind": "other",
-                      "name": "נסיעה מערבה",
+                      "name": "נסיעה לסנייפלסנס",
                       "lat": null,
                       "lng": null,
-                      "summary": "הקטע הארוך של היום. כדאי לעצור לאוכל ולתדלק בדרך",
+                      "summary": "דרך בורגרנס. כדאי לעצור לאוכל ולתדלק בדרך",
                       "description": null,
                       "hours": null,
                       "price": null,
                       "howToGet": null,
                       "durationMinutes": null,
-                      "tips": [
-                        "עקיפה אפשרית: סלע הוויטסרקור בחצי האי ואטנס (כביש חצץ, מוסיף כשעתיים)."
-                      ],
+                      "tips": [],
                       "links": []
                     },
                     {
@@ -1193,8 +1259,8 @@
                       "lat": 64.942,
                       "lng": -23.307,
                       "drive": {
-                        "km": 290,
-                        "minutes": 230
+                        "km": 250,
+                        "minutes": 195
                       },
                       "driveToHotel": {
                         "km": 3,
@@ -1224,8 +1290,8 @@
                       "lat": 64.7027,
                       "lng": -20.9776,
                       "drive": {
-                        "km": 190,
-                        "minutes": 150
+                        "km": 115,
+                        "minutes": 90
                       },
                       "summary": "מפלים שיוצאים מתוך שדה לבה",
                       "description": "שורה של מפלים קטנים שזורמים מתוך שדה לבה לנהר הוויטאו, ולידם מפל בארנפוס.",
@@ -1234,7 +1300,7 @@
                       "howToGet": null,
                       "durationMinutes": 45,
                       "tips": [
-                        "מוסיף ליום בערך שעה של נהיגה. כ-45 דק' מבורגרנס."
+                        "מוסיף ליום כ-35 דק' של נהיגה."
                       ],
                       "links": [],
                       "wiki": "Hraunfossar",
@@ -1282,18 +1348,22 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 250,
+        "minutes": 195
+      }
     },
     {
       "id": "snaefellsnes",
       "date": null,
       "region": "סנייפלסנס",
-      "title": "חופים, צוקים וחזרה לרייקיאוויק",
+      "title": "חופים, צוקים ומכתשים",
       "hotelId": null,
       "stayArea": {
-        "name": "רייקיאוויק",
-        "lat": 64.1466,
-        "lng": -21.9426
+        "name": "גרונדרפיורדור",
+        "lat": 64.9244,
+        "lng": -23.258
       },
       "blocks": [
         {
@@ -1436,12 +1506,30 @@
               "durationMinutes": 20,
               "tips": [],
               "links": [],
-              "wiki": "Búðir"
+              "wiki": "Búðir",
+              "driveToHotel": {
+                "km": 60,
+                "minutes": 55
+              }
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "back-to-reykjavik",
+      "date": null,
+      "region": "סנייפלסנס ← רייקיאוויק",
+      "title": "חוף כלבי הים וחזרה לרייקיאוויק",
+      "hotelId": null,
+      "stayArea": {
+        "name": "רייקיאוויק",
+        "lat": 64.1466,
+        "lng": -21.9426
+      },
+      "blocks": [
         {
-          "slot": "evening",
+          "slot": "morning",
           "items": [
             {
               "id": "ytri-tunga",
@@ -1450,8 +1538,8 @@
               "lat": 64.803,
               "lng": -23.081,
               "drive": {
-                "km": 18,
-                "minutes": 15
+                "km": 50,
+                "minutes": 45
               },
               "driveToHotel": {
                 "km": 165,
@@ -1468,7 +1556,11 @@
             }
           ]
         }
-      ]
+      ],
+      "transfer": {
+        "km": 180,
+        "minutes": 140
+      }
     },
     {
       "id": "departure",

@@ -1434,7 +1434,9 @@ $('theme').addEventListener('click', () => {
   const cur = document.documentElement.dataset.theme || null;
   const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
   if (next) document.documentElement.dataset.theme = next; else delete document.documentElement.dataset.theme;
+  document.querySelector('meta[name=color-scheme]').content = next || 'light dark';
   store.set('theme', next || '');
+  toast(next === 'dark' ? '🌙 מצב כהה' : next === 'light' ? '☀️ מצב בהיר' : '◐ אוטומטי, לפי הגדרות הטלפון', 'info');
 });
 const updateOnline = () => { $('offline').hidden = navigator.onLine; };
 window.addEventListener('online', updateOnline);

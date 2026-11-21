@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>מתכנן טיולים</title>
+  <!-- the page has its own dark mode: tells browsers not to force-darken it -->
+  <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,7 +27,13 @@
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="styles.css">
   <script>
-    try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    try {
+      var t = localStorage.getItem('theme');
+      if (t) {
+        document.documentElement.dataset.theme = t;
+        document.querySelector('meta[name=color-scheme]').content = t;   // only this scheme: no forced dark in light mode
+      }
+    } catch (e) {}
   </script>
 </head>
 <body>

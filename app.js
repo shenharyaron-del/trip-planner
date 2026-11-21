@@ -1278,8 +1278,9 @@ async function viewBudget(id) {
           <label>סכום<input name="amount" required inputmode="decimal" dir="ltr" autocomplete="off"></label>
           <label>מטבע<select name="cur">${Object.keys(CUR).map(c => `<option value="${c}" ${c === (store.get('exp-cur') || base) ? 'selected' : ''}>${CUR[c]}</option>`).join('')}</select></label>
         </div>
-        <fieldset class="nights"><legend>קטגוריה</legend>
-          ${CATS.map(([c, ic], i) => `<label class="chip"><input type="radio" name="cat" value="${esc(c)}" ${i === 4 ? 'checked' : ''}><span>${ic} ${esc(c)}</span></label>`).join('')}
+        <p id="exp-conv" class="exp-conv muted" aria-live="polite"></p>
+        <fieldset class="cat-grid"><legend>קטגוריה</legend>
+          ${CATS.map(([c, ic], i) => `<label class="cat-tile"><input type="radio" name="cat" value="${esc(c)}" ${i === 4 ? 'checked' : ''}><span><i>${ic}</i>${esc(c)}</span></label>`).join('')}
         </fieldset>
         <label>תאריך<input name="date" type="date" value="${todayIn(t.timezone)}"></label>
         <label>הערה (לא חובה)<input name="note" maxlength="120" autocomplete="off"></label>
@@ -1294,6 +1295,17 @@ async function viewBudget(id) {
     const from = $('conv-cur').value;
     out.innerHTML = Number.isFinite(n) ? Object.keys(CUR).filter(c => c !== from).map(c => `<b>${fmtMoney(convert(n, from, c, rates) || 0, c)}</b>`).join(' · ') : '';
   };
+  // live conversion of the new expense to shekels (or to the local currency when typed in shekels)
+  const expConv = () => {
+    const f = $('exp-form'), out = $('exp-conv');
+    if (!f || !out) return;
+    const n = parseFloat((f.amount.value || '').replace(/,/g, ''));
+    const from = f.cur.value, to = from === 'ILS' ? base : 'ILS';
+    const v = Number.isFinite(n) && n > 0 ? convert(n, from, to, rates) : null;
+    out.innerHTML = v === null ? '' : `≈ <b>${fmtMoney(v, to)}</b>`;
+  };
+  $('exp-form')?.amount.addEventListener('input', expConv);
+  $('exp-form')?.cur.addEventListener('change', expConv);
   $('conv-amt')?.addEventListener('input', conv);
   $('conv-cur')?.addEventListener('change', conv);
   conv();
